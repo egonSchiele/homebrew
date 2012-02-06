@@ -1,6 +1,6 @@
 require 'formula'
 
-class Ushare <Formula
+class Ushare < Formula
   url 'http://ushare.geexbox.org/releases/ushare-1.1a.tar.bz2'
   homepage 'http://ushare.geexbox.org/'
   md5 '5bbcdbf1ff85a9710fa3d4e82ccaa251'
@@ -11,13 +11,15 @@ class Ushare <Formula
 
   def patches
     { :p0 =>
-      "http://svn.macports.org/repository/macports/trunk/dports/net/ushare/files/patch-configure.diff"
+      "https://trac.macports.org/export/89267/trunk/dports/net/ushare/files/patch-configure.diff"
     }
   end
 
   def install
     # Need to explicitly add gettext here.
+    gettext = Formula.factory("gettext")
     ENV.append 'LDFLAGS', "-lintl"
+    ENV.append 'CFLAGS', "-I#{gettext.include}"
 
     inreplace 'configure', /config.h/, 'src/config.h'
     system "./configure", "--disable-debug",

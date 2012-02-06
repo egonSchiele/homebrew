@@ -3,7 +3,7 @@ require 'formula'
 # This formula serves as the base class for several very similar
 # formulae for Amazon Web Services related tools.
 
-class AmazonWebServicesFormula <Formula
+class AmazonWebServicesFormula < Formula
   # Use this method to peform a standard install for Java-based tools,
   # keeping the .jars out of HOMEBREW_PREFIX/lib
   def standard_install
@@ -31,7 +31,7 @@ class AmazonWebServicesFormula <Formula
        * On Bash, add them to `~/.bash_profile`.
        * On Zsh, add them to `~/.zprofile` instead.
 
-      export JAVA_HOME="/System/Library/Frameworks/JavaVM.framework/Home"
+      export JAVA_HOME="$(/usr/libexec/java_home)"
       export EC2_PRIVATE_KEY="$(/bin/ls $HOME/.ec2/pk-*.pem)"
       export EC2_CERT="$(/bin/ls $HOME/.ec2/cert-*.pem)"
       export #{var_name}="#{var_value}"
@@ -39,10 +39,10 @@ class AmazonWebServicesFormula <Formula
   end
 end
 
-class Ec2ApiTools <AmazonWebServicesFormula
-  homepage 'http://developer.amazonwebservices.com/connect/entry.jspa?externalID=351'
-  url 'http://ec2-downloads.s3.amazonaws.com/ec2-api-tools-1.3-57419.zip'
-  md5 'edf10b4eb06e161c03c3ca06152e11f2'
+class Ec2ApiTools < AmazonWebServicesFormula
+  homepage 'http://aws.amazon.com/developertools/351'
+  url 'http://ec2-downloads.s3.amazonaws.com/ec2-api-tools-1.5.2.3.zip'
+  md5 'fa1e050b35ce9e7f4a2017f251c5e2bb'
 
   def install
     standard_install

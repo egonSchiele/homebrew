@@ -1,9 +1,9 @@
 require 'formula'
 
-class Msgpack <Formula
-  url 'http://downloads.sourceforge.net/project/msgpack/msgpack/cpp/msgpack-0.4.3.tar.gz'
-  homepage 'http://msgpack.sourceforge.net/'
-  md5 'ae55b5a48221fabc587a9ff2b0b6106e'
+class Msgpack < Formula
+  homepage 'http://msgpack.org/'
+  url 'http://msgpack.org/releases/cpp/msgpack-0.5.7.tar.gz'
+  sha256 '7c203265cf14a4723820e0fc7ac14bf4bad5578f7bc525e9835c70cd36e7d1b8'
 
   def install
     system "./configure", "--disable-dependency-tracking", "--prefix=#{prefix}"

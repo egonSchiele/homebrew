@@ -1,9 +1,9 @@
 require 'formula'
 
-class Mpg123 <Formula
-  url 'http://downloads.sourceforge.net/project/mpg123/mpg123/1.12.5/mpg123-1.12.5.tar.bz2'
+class Mpg123 < Formula
+  url 'http://downloads.sourceforge.net/project/mpg123/mpg123/1.13.4/mpg123-1.13.4.tar.bz2'
   homepage 'http://www.mpg123.de/'
-  md5 '01fa64533cade452c2b22a3ce14a2fcd'
+  md5 '073620b3938c4cb9c4f70e8fe3e114b8'
 
   def skip_clean? path
     # mpg123 can't find its plugins if there are no la files
@@ -17,7 +17,7 @@ class Mpg123 <Formula
             "--with-audio=coreaudio",
             "--with-default-audio=coreaudio"]
 
-    if snow_leopard_64?
+    if MacOS.prefer_64_bit?
       args << "--with-cpu=x86-64"
     else
       args << "--with-cpu=sse_alone"
