@@ -36,9 +36,17 @@ module Homebrew extend self
     if sha.empty? then "(none)" else sha end
   end
 
+  def describe_x11
+    return "N/A" unless x11_installed?
+    return case x11_path = Pathname.new("/usr/X11").realpath.to_s
+    when "/usr/X11" then "/usr/X11"
+    else "/usr/X11 => #{x11_path}"
+    end
+  end
+
   def describe_perl
     perl = `which perl`.chomp
-    return "N/A" unless perl
+    return "N/A" if perl.empty?
 
     real_perl = Pathname.new(perl).realpath.to_s
     return perl if perl == real_perl
@@ -47,7 +55,7 @@ module Homebrew extend self
 
   def describe_python
     python = `which python`.chomp
-    return "N/A" unless python
+    return "N/A" if python.empty?
 
     real_python = Pathname.new(python).realpath.to_s
 
@@ -57,7 +65,7 @@ module Homebrew extend self
 
   def describe_ruby
     ruby = `which ruby`.chomp
-    return "N/A" unless ruby
+    return "N/A" if ruby.empty?
 
     real_ruby = Pathname.new(ruby).realpath.to_s
     return ruby if ruby == real_ruby
@@ -82,7 +90,7 @@ module Homebrew extend self
     LLVM: #{llvm ? "build #{llvm}" : "N/A"}
     Clang: #{clang ? "#{clang} build #{clang_build}" : "N/A"}
     MacPorts or Fink? #{macports_or_fink_installed?}
-    X11 installed? #{x11_installed?}
+    X11: #{describe_x11}
     System Ruby: #{RUBY_VERSION}-#{RUBY_PATCHLEVEL}
     /usr/bin/ruby => #{real_path("/usr/bin/ruby")}
     Which Perl:   #{describe_perl}
