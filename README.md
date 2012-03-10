@@ -6,7 +6,11 @@ Features, usage and installation instructions are [summarized on the homepage][h
 
 	brew create [url to package or file]
 
-The follow the steps. If it's just a script that you want to copy over, use
+Then follow the steps.
+
+If it's just a script, post it to a gist and use a `GithubGistFormula` as seen [here](https://github.com/mxcl/homebrew/blob/master/Library/Formula/browser.rb).
+
+Use this to copy things to bin:
 
 	bin.install(script_name)
 
