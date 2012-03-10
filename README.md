@@ -20,6 +20,10 @@ See the [Formula Cookbook](https://github.com/mxcl/homebrew/wiki/Formula-Cookboo
 
 See where your homebrew is located with `brew --repository`.
 
+## Pull new changes from main repo:
+
+	git pull mxcl master
+	git push origin
 
 What Packages Are Available?
 ----------------------------
