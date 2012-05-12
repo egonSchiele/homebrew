@@ -1,5 +1,12 @@
 # Base classes for specialized types of formulae.
 
+# Adit: just download a file
+class DownloadFormula < Formula
+  def install
+    system "cp -r #{Dir['*'].join(" ")} #{ENV['PWD']}"
+  end
+end
+
 # See youtube-dl.rb for an example
 class ScriptFileFormula < Formula
   def install
