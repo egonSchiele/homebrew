@@ -12,7 +12,7 @@ module Homebrew extend self
     if Process.uid.zero? and not File.stat(HOMEBREW_BREW_FILE).uid.zero?
       # note we only abort if Homebrew is *not* installed as sudo and the user
       # calls brew as root. The fix is to chown brew to root.
-      abort "Cowardly refusing to `sudo brew upgrade'"
+      # abort "Cowardly refusing to `sudo brew upgrade'"
     end
 
     Homebrew.perform_preinstall_checks
