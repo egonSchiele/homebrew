@@ -6,9 +6,16 @@ module Homebrew extend self
   def install
     raise FormulaUnspecifiedError if ARGV.named.empty?
 
+    if ARGV.include? '--head'
+      raise "Specify `--HEAD` in uppercase to build from trunk."
+    end
+
     ARGV.named.each do |name|
-      msg = blacklisted? name
-      raise "No available formula for #{name}\n#{msg}" if msg
+      # if a formula has been tapped ignore the blacklisting
+      if not File.file? HOMEBREW_REPOSITORY/"Library/Formula/#{name}.rb"
+        msg = blacklisted? name
+        raise "No available formula for #{name}\n#{msg}" if msg
+      end
     end unless ARGV.force?
 
     if Process.uid.zero? and not File.stat(HOMEBREW_BREW_FILE).uid.zero?
@@ -30,24 +37,17 @@ module Homebrew extend self
   end
 
   def check_writable_install_location
-    raise "Cannot write to #{HOMEBREW_CELLAR}" if HOMEBREW_CELLAR.exist? and not HOMEBREW_CELLAR.writable?
-    raise "Cannot write to #{HOMEBREW_PREFIX}" unless HOMEBREW_PREFIX.writable? or HOMEBREW_PREFIX.to_s == '/usr/local'
+    raise "Cannot write to #{HOMEBREW_CELLAR}" if HOMEBREW_CELLAR.exist? and not HOMEBREW_CELLAR.writable_real?
+    raise "Cannot write to #{HOMEBREW_PREFIX}" unless HOMEBREW_PREFIX.writable_real? or HOMEBREW_PREFIX.to_s == '/usr/local'
   end
 
-  def check_cc
-    if MacOS.snow_leopard?
-      if MacOS.llvm_build_version < RECOMMENDED_LLVM
-        opoo "You should upgrade to Xcode 3.2.6"
-      end
-    else
-      if (MacOS.gcc_40_build_version < RECOMMENDED_GCC_40) or (MacOS.gcc_42_build_version < RECOMMENDED_GCC_42)
-        opoo "You should upgrade to Xcode 3.1.4"
-      end
+  def check_xcode
+    require 'cmd/doctor'
+    checks = Checks.new
+    %w{check_for_latest_xcode check_xcode_license_approved}.each do |check|
+      out = checks.send(check)
+      opoo out unless out.nil?
     end
-  rescue
-    # the reason we don't abort is some formula don't require Xcode
-    # TODO allow formula to declare themselves as "not needing Xcode"
-    opoo "Xcode is not installed! Builds may fail!"
   end
 
   def check_macports
@@ -70,7 +70,7 @@ module Homebrew extend self
   def perform_preinstall_checks
     check_ppc
     check_writable_install_location
-    check_cc
+    check_xcode
     check_macports
     check_cellar
   end
@@ -86,7 +86,7 @@ module Homebrew extend self
           fi.caveats
           fi.finish
         rescue CannotInstallFormulaError => e
-          onoe e.message
+          ofail e.message
         end
       end
     end

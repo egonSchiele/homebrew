@@ -1,9 +1,9 @@
 require 'formula'
 
 class Virtuoso < Formula
-  url 'http://downloads.sourceforge.net/project/virtuoso/virtuoso/6.1.4/virtuoso-opensource-6.1.4.tar.gz'
   homepage 'http://virtuoso.openlinksw.com/wiki/main/'
-  md5 '7110a0b4b171b84850d346f4fe648172'
+  url 'http://downloads.sourceforge.net/project/virtuoso/virtuoso/6.1.6/virtuoso-opensource-6.1.6.tar.gz'
+  sha1 '03bc14b1627d16d76687f8b8659801966aab3fb4'
 
   # If gawk isn't found, make fails deep into the process.
   depends_on 'gawk'
