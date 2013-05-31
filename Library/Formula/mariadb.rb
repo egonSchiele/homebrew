@@ -2,8 +2,13 @@ require 'formula'
 
 class Mariadb < Formula
   homepage 'http://mariadb.org/'
-  url 'http://ftp.osuosl.org/pub/mariadb/mariadb-5.5.28/kvm-tarbake-jaunty-x86/mariadb-5.5.28.tar.gz'
-  sha1 '29ec3c64365e73dfda5f9d38c76de681b62a4987'
+  url 'http://ftp.osuosl.org/pub/mariadb/mariadb-5.5.30/kvm-tarbake-jaunty-x86/mariadb-5.5.30.tar.gz'
+  sha1 'aa0cb78b8d709d765e4a58953ecdceefc48af5a7'
+
+  devel do
+    url 'http://ftp.osuosl.org/pub/mariadb/mariadb-10.0.2/kvm-tarbake-jaunty-x86/mariadb-10.0.2.tar.gz'
+    sha1 '17deec36fd26124c357d43d520199c115c46caa1'
+  end
 
   depends_on 'cmake' => :build
   depends_on 'pidof' unless MacOS.version >= :mountain_lion
@@ -23,6 +28,9 @@ class Mariadb < Formula
 
   conflicts_with 'percona-server',
     :because => "mariadb and percona-server install the same binaries."
+
+  conflicts_with 'mysql-cluster',
+    :because => "mariadb and mysql-cluster install the same binaries."
 
   env :std if build.universal?
 
@@ -110,27 +118,12 @@ class Mariadb < Formula
     Set up databases with:
         unset TMPDIR
         mysql_install_db --user=\`whoami\` --basedir="$(brew --prefix mariadb)" --datadir=#{var}/mysql --tmpdir=/tmp
-
-    If this is your first install, automatically load on login with:
-        cp #{plist_path} ~/Library/LaunchAgents/
-        launchctl load -w ~/Library/LaunchAgents/#{plist_path.basename}
-
-    If this is an upgrade and you already have the #{plist_path.basename} loaded:
-        launchctl unload -w ~/Library/LaunchAgents/#{plist_path.basename}
-        cp #{plist_path} ~/Library/LaunchAgents/
-        launchctl load -w ~/Library/LaunchAgents/#{plist_path.basename}
-
-    Note on upgrading:
-        We overwrite any existing #{plist_path.basename} in ~/Library/LaunchAgents
-        if we are upgrading because previous versions of this brew created the
-        plist with a version specific program argument.
-
-    Or start manually with:
-        mysql.server start
     EOS
   end
 
-  def startup_plist; <<-EOPLIST.undent
+  plist_options :manual => "mysql.server start"
+
+  def plist; <<-EOS.undent
     <?xml version="1.0" encoding="UTF-8"?>
     <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
     <plist version="1.0">
@@ -143,13 +136,11 @@ class Mariadb < Formula
       <string>#{HOMEBREW_PREFIX}/bin/mysqld_safe</string>
       <key>RunAtLoad</key>
       <true/>
-      <key>UserName</key>
-      <string>#{`whoami`.chomp}</string>
       <key>WorkingDirectory</key>
       <string>#{var}</string>
     </dict>
     </plist>
-    EOPLIST
+    EOS
   end
 end
 

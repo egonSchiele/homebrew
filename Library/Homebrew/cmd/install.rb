@@ -31,7 +31,7 @@ module Homebrew extend self
     case Hardware.cpu_type when :ppc, :dunno
       abort <<-EOS.undent
         Sorry, Homebrew does not support your computer's CPU architecture.
-        For PPC support, see: http://github.com/sceaga/homebrew/tree/powerpc
+        For PPC support, see: https://github.com/mistydemeo/tigerbrew
         EOS
     end
   end
@@ -44,14 +44,14 @@ module Homebrew extend self
   def check_xcode
     require 'cmd/doctor'
     checks = Checks.new
-    %w{check_for_latest_xcode check_xcode_license_approved}.each do |check|
+    %w{check_xcode_clt check_xcode_license_approved}.each do |check|
       out = checks.send(check)
       opoo out unless out.nil?
     end
   end
 
   def check_macports
-    if MacOS.macports_or_fink_installed?
+    unless MacOS.macports_or_fink.empty?
       opoo "It appears you have MacPorts or Fink installed."
       puts "Software installed with other package managers causes known problems for"
       puts "Homebrew. If a formula fails to build, uninstall MacPorts/Fink and try again."
@@ -80,16 +80,22 @@ module Homebrew extend self
     unless formulae.empty?
       perform_preinstall_checks
       formulae.each do |f|
-        begin
-          fi = FormulaInstaller.new(f)
-          fi.install
-          fi.caveats
-          fi.finish
-        rescue CannotInstallFormulaError => e
-          ofail e.message
-        end
+        install_formula(f)
       end
     end
   end
 
+  def install_formula f
+    fi = FormulaInstaller.new(f)
+    fi.install
+    fi.caveats
+    fi.finish
+  rescue FormulaInstallationAlreadyAttemptedError
+    # We already attempted to install f as part of the dependency tree of
+    # another formula. In that case, don't generate an error, just move on.
+  rescue FormulaAlreadyInstalledError => e
+    opoo e.message
+  rescue CannotInstallFormulaError => e
+    ofail e.message
+  end
 end

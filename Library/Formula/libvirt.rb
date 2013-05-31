@@ -2,19 +2,15 @@ require 'formula'
 
 class Libvirt < Formula
   homepage 'http://www.libvirt.org'
-  url 'http://libvirt.org/sources/stable_updates/libvirt-0.9.11.7.tar.gz'
-  sha256 'a62f9ce2cac84d0377fc68cf132cf8968ad5d37e9b305182c3f9bbcce3b1b9fa'
-
-  # Latest (roughly) monthly release.
-  devel do
-    url 'http://libvirt.org/sources/libvirt-1.0.0.tar.gz'
-    sha256 '14c8a30ebfb939c82cab5f759a95d09646b43b4210e45490e92459ae65123076'
-  end
+  url 'http://libvirt.org/sources/stable_updates/libvirt-1.0.5.1.tar.gz'
+  sha256 '38a67d9dc979ed28440791eb3fd63e94e4d04e4efbe7554a83bdf0cc614d0a6e'
 
   option 'without-libvirtd', 'Build only the virsh client and development libraries'
 
-  depends_on "gnutls"
-  depends_on "yajl"
+  depends_on 'pkg-config' => :build
+  depends_on 'gnutls'
+  depends_on 'libgcrypt'
+  depends_on 'yajl'
 
   if MacOS.version == :leopard
     # Definitely needed on Leopard, but not on Snow Leopard.

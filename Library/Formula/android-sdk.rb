@@ -8,9 +8,9 @@ end
 
 class AndroidSdk < Formula
   homepage 'http://developer.android.com/index.html'
-  url 'http://dl.google.com/android/android-sdk_r20.0.3-macosx.zip'
-  version 'r20.0.3'
-  sha1 'c02403c2e29952e6bbd632767b5c3cd3618c3e80'
+  url 'http://dl.google.com/android/android-sdk_r22.0.1-macosx.zip'
+  version 'r22.0.1'
+  sha1 '59365847b63792cafc3c3d8134c6392c86f9bf72'
 
   # TODO docs and platform-tools
   # See the long comment below for the associated problems
@@ -53,7 +53,7 @@ class AndroidSdk < Formula
     end
 
     AdbBashCompletion.new.brew do
-      (prefix+'etc/bash_completion.d').install 'adb.bash' => 'adb-completion.bash'
+      bash_completion.install 'adb.bash' => 'adb-completion.bash'
     end
   end
 
@@ -67,7 +67,7 @@ class AndroidSdk < Formula
     updates. If you want to try and fix this then see the comment in this formula.
 
     You may need to add the following to your .bashrc:
-      export ANDROID_SDK_ROOT=#{prefix}
+      export ANDROID_SDK_ROOT=#{opt_prefix}
     EOS
   end
 

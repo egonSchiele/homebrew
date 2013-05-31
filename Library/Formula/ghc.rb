@@ -1,9 +1,7 @@
 require 'formula'
 
 class NeedsSnowLeopard < Requirement
-  def satisfied?
-    MacOS.version >= :snow_leopard
-  end
+  satisfy MacOS.version >= :snow_leopard
 
   def message; <<-EOS.undent
     GHC requires OS X 10.6 or newer. The binary releases no longer work on
@@ -25,41 +23,33 @@ class Ghcbinary < Formula
 end
 
 class Ghctestsuite < Formula
-  url 'https://github.com/ghc/testsuite/tarball/ghc-7.4.2-release'
-  sha1 '6b1f161a78a70638aacc931abfdef7dd50c7f923'
+  url 'https://github.com/ghc/testsuite/tarball/ghc-7.6.3-release'
+  sha1 '7f51a25a13edcdf6a8b9df3c13be78c9d41ce4e2'
 end
 
 class Ghc < Formula
   homepage 'http://haskell.org/ghc/'
-  url 'http://www.haskell.org/ghc/dist/7.4.2/ghc-7.4.2-src.tar.bz2'
-  sha1 '73b3b39dc164069bc80b69f7f2963ca1814ddf3d'
+  url 'http://www.haskell.org/ghc/dist/7.6.3/ghc-7.6.3-src.tar.bz2'
+  sha1 '8938e1ef08b37a4caa071fa169e79a3001d065ff'
 
   env :std
 
-  depends_on NeedsSnowLeopard.new
+  depends_on NeedsSnowLeopard
 
   option '32-bit'
   option 'tests', 'Verify the build using the testsuite in Fast Mode, 5 min'
 
   bottle do
-    sha1 '72c7e8ad7d25382261ed431f953920004439ad69' => :mountainlion
-    sha1 '16c188ebe10aa06250af12268be39d56284aec91' => :lion
-    sha1 '68c1fcff903826dde6fc8e2a120ae8a69a8bafb2' => :snowleopard
+    sha1 '332ed50be17831557b5888f7e8395f1beb008731' => :mountain_lion
+    sha1 '64a7548eb2135a4b5f2276e59f435a39c2d2961f' => :lion
+    sha1 '166bf3c8a512b58da4119b2997a1f45c1f7c65b5' => :snow_leopard
   end
 
   fails_with :clang do
-    build 421
     cause <<-EOS.undent
       Building with Clang configures GHC to use Clang as its preprocessor,
       which causes subsequent GHC-based builds to fail.
       EOS
-  end
-
-  def patches
-    # Explained: http://hackage.haskell.org/trac/ghc/ticket/7040
-    # Discussed: https://github.com/mxcl/homebrew/issues/13519
-    # Remove: version > 7.4.2
-    'http://hackage.haskell.org/trac/ghc/raw-attachment/ticket/7040/ghc7040.patch'
   end
 
   def install
@@ -90,6 +80,7 @@ class Ghc < Formula
 
       system "./configure", "--prefix=#{prefix}",
                             "--build=#{arch}-apple-darwin"
+      ENV.j1 # Fixes an intermittent race condition
       system 'make'
       if build.include? 'tests'
         Ghctestsuite.new.brew do

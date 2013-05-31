@@ -2,8 +2,8 @@ require 'formula'
 
 class Juise < Formula
   homepage 'http://code.google.com/p/juise/'
-  url 'http://juise.googlecode.com/files/juise-0.3.15.tar.gz'
-  sha1 '9ec4ea9a078b7e5a4c72efe241b7089683fe50f1'
+  url 'http://juise.googlecode.com/files/juise-0.3.21.tar.gz'
+  sha1 '1d58b182ce60edc275f6574bc72c128a799438e0'
 
   depends_on 'libtool'  => :build
   depends_on 'libslax'
