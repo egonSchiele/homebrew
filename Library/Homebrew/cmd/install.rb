@@ -18,17 +18,12 @@ module Homebrew extend self
       end
     end unless ARGV.force?
 
-    if Process.uid.zero? and not File.stat(HOMEBREW_BREW_FILE).uid.zero?
-      # note we only abort if Homebrew is *not* installed as sudo and the user
-      # calls brew as root. The fix is to chown brew to root.
-      # abort "Cowardly refusing to `sudo brew install'"
-    end
-
-    install_formulae ARGV.formulae
+    perform_preinstall_checks
+    ARGV.formulae.each { |f| install_formula(f) }
   end
 
   def check_ppc
-    case Hardware.cpu_type when :ppc, :dunno
+    case Hardware::CPU.type when :ppc, :dunno
       abort <<-EOS.undent
         Sorry, Homebrew does not support your computer's CPU architecture.
         For PPC support, see: https://github.com/mistydemeo/tigerbrew
@@ -73,16 +68,6 @@ module Homebrew extend self
     check_xcode
     check_macports
     check_cellar
-  end
-
-  def install_formulae formulae
-    formulae = [formulae].flatten.compact
-    unless formulae.empty?
-      perform_preinstall_checks
-      formulae.each do |f|
-        install_formula(f)
-      end
-    end
   end
 
   def install_formula f

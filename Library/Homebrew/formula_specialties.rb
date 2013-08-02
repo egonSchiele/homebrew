@@ -14,7 +14,7 @@ class ScriptFileFormula < Formula
   end
 end
 
-# See flac.rb for an example
+# See browser for an example
 class GithubGistFormula < ScriptFileFormula
   def initialize name='__UNKNOWN__', path=nil
     url = self.class.stable.url

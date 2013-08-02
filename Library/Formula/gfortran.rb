@@ -2,15 +2,14 @@ require 'formula'
 
 class Gfortran < Formula
   homepage 'http://gcc.gnu.org/wiki/GFortran'
-  url 'http://ftpmirror.gnu.org/gcc/gcc-4.8.0/gcc-4.8.0.tar.bz2'
-  mirror 'http://ftp.gnu.org/gnu/gcc/gcc-4.8.0/gcc-4.8.0.tar.bz2'
-  sha1 'b4ee6e9bdebc65223f95067d0cc1a634b59dad72'
+  url 'http://ftpmirror.gnu.org/gcc/gcc-4.8.1/gcc-4.8.1.tar.bz2'
+  mirror 'http://ftp.gnu.org/gnu/gcc/gcc-4.8.1/gcc-4.8.1.tar.bz2'
+  sha1 '4e655032cda30e1928fcc3f00962f4238b502169'
 
   bottle do
-    revision 1
-    sha1 '4dfa4f828e425441d927da0d72a5beb7298560fb' => :mountain_lion
-    sha1 'ea69a0174218e72118e0e0b0002658aff7a7fede' => :lion
-    sha1 '046e1092fdf4bbc4e8b75db750fbc95f39c2c7cb' => :snow_leopard
+    sha1 '74e1625cc759101a8823a249fa1469da98826756' => :mountain_lion
+    sha1 '759a7106878a8b54a9cdfdd99adcc78d34f99a10' => :lion
+    sha1 'f1ca217e4a3beaeee82593a1d63b34f4555aa7cd' => :snow_leopard
   end
 
   option 'enable-profiled-build', 'Make use of profile guided optimization when bootstrapping GCC'
@@ -58,6 +57,12 @@ class Gfortran < Formula
       '--disable-nls'
     ]
 
+    # https://github.com/mxcl/homebrew/issues/19584#issuecomment-19661219
+    unless MacOS.prefer_64_bit?
+      args << "--disable-multiarch"
+      args << "--disable-multilib"
+    end
+
     mkdir 'build' do
       unless MacOS::CLT.installed?
         # For Xcode-only systems, we need to tell the sysroot path.
@@ -104,20 +109,12 @@ class Gfortran < Formula
     Pathname('in.f90').write(fixture)
     system "#{bin}/gfortran -c in.f90"
     system "#{bin}/gfortran -o test in.o"
-    `./test`.strip =='done'
+    assert_equal 'done', `./test`.strip
   end
 
   def caveats; <<-EOS.undent
-    Brews that require a Fortran compiler should not use:
-      depends_on 'gfortran'
-
-    The preferred method of declaring Fortran support is to use:
-      def install
-        ...
-        ENV.fortran
-        ...
-      end
-
+    Brews that require a Fortran compiler should use:
+      depends_on :fortran
     EOS
   end
 end
