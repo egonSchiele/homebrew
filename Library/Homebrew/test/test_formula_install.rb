@@ -5,18 +5,20 @@ require 'keg'
 
 
 class TestScriptFileFormula < ScriptFileFormula
-  url "file:///#{Pathname.new(ABS__FILE__).realpath}"
+  url "file:///#{__FILE__}"
   version "1"
 
-  def initialize
-    @name='test-script-formula'
-    @homepage = 'http://example.com/'
+  def initialize(name="test_script_formula", path=nil)
     super
   end
 end
 
 
 class ConfigureTests < Test::Unit::TestCase
+  def teardown
+    HOMEBREW_CACHE.rmtree
+  end
+
   def test_detect_failed_configure
     f = ConfigureFails.new
     shutup { f.brew { f.install } }
@@ -27,6 +29,10 @@ end
 
 
 class InstallTests < Test::Unit::TestCase
+  def teardown
+    HOMEBREW_CACHE.rmtree
+  end
+
   def temporary_install f
     # Brew and install the given formula
     shutup do
@@ -50,11 +56,9 @@ class InstallTests < Test::Unit::TestCase
   def test_a_basic_install
     f=TestBall.new
 
-    assert_equal Formula.path(f.name), f.path
     assert !f.installed?
 
     temporary_install f do
-      assert_match Regexp.new("^#{HOMEBREW_CELLAR}/"), f.prefix.to_s
 
       # Test that things made it into the Keg
       assert f.bin.directory?

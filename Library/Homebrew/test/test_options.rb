@@ -54,6 +54,15 @@ class OptionsTests < Test::Unit::TestCase
     assert_equal 1, @options.count
   end
 
+  def test_preserves_existing_member_when_pushing_duplicate
+    a = Option.new("foo", "bar")
+    b = Option.new("foo", "qux")
+    @options << a << b
+    assert_equal 1, @options.count
+    assert_same a, @options.first
+    assert_equal a.description, @options.first.description
+  end
+
   def test_include
     @options << Option.new("foo")
     assert @options.include? "--foo"
@@ -117,6 +126,13 @@ class OptionsTests < Test::Unit::TestCase
     assert_equal [foo], (@options & options).to_a
   end
 
+  def test_set_union
+    foo, bar, baz = %w{foo bar baz}.map { |o| Option.new(o) }
+    options = Options.new << foo << bar
+    @options << foo << baz
+    assert_equal [foo, bar, baz].sort, (@options | options).to_a.sort
+  end
+
   def test_coerce_with_options
     assert_same @options, Options.coerce(@options)
   end
@@ -142,5 +158,11 @@ class OptionsTests < Test::Unit::TestCase
     verbose = Option.new("-v")
     debug = Option.new("-d")
     assert_equal [verbose, debug].sort, Options.coerce(array).to_a.sort
+  end
+
+  def test_copies_do_not_share_underlying_collection
+    copy = @options.dup << Option.new("foo")
+    assert_empty @options
+    assert_equal 1, copy.count
   end
 end

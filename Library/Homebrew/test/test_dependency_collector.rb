@@ -17,6 +17,10 @@ class DependencyCollectorTests < Test::Unit::TestCase
     @d = DependencyCollector.new.extend(DependencyCollectorTestExtension)
   end
 
+  def teardown
+    DependencyCollector::CACHE.clear
+  end
+
   def test_dependency_creation
     @d.add 'foo' => :build
     @d.add 'bar' => ['--universal', :optional]
@@ -82,35 +86,6 @@ class DependencyCollectorTests < Test::Unit::TestCase
     assert dep.optional?
   end
 
-  def test_libltdl_not_build_dep
-    MacOS::Xcode.stubs(:provides_autotools?).returns(false)
-    dep = @d.build(:libltdl)
-    assert_equal Dependency.new("libtool"), dep
-    assert !dep.build?
-  end
-
-  def test_autotools_dep_no_system_autotools
-    MacOS::Xcode.stubs(:provides_autotools?).returns(false)
-    dep = @d.build(:libtool)
-    assert_equal Dependency.new("libtool"), dep
-    assert dep.build?
-  end
-
-  def test_autotools_dep_system_autotools
-    MacOS::Xcode.stubs(:provides_autotools?).returns(true)
-    assert_nil @d.build(:libtool)
-  end
-
-  def test_x11_proxy_dep_mountain_lion
-    MacOS.stubs(:version).returns(MacOS::Version.new("10.8"))
-    assert_equal Dependency.new("libpng"), @d.build(:libpng)
-  end
-
-  def test_x11_proxy_dep_lion_or_older
-    MacOS.stubs(:version).returns(MacOS::Version.new("10.7"))
-    assert_equal X11Dependency::Proxy.new(:libpng), @d.build(:libpng)
-  end
-
   def test_ld64_dep_pre_leopard
     MacOS.stubs(:version).returns(MacOS::Version.new("10.4"))
     assert_equal LD64Dependency.new, @d.build(:ld64)
@@ -127,5 +102,36 @@ class DependencyCollectorTests < Test::Unit::TestCase
 
   def test_raises_typeerror_for_unknown_types
     assert_raises(TypeError) { @d.add(Object.new) }
+  end
+
+  def test_does_not_mutate_dependency_spec
+    spec = { 'foo' => :optional }
+    copy = spec.dup
+    @d.add(spec)
+    assert_equal copy, spec
+  end
+
+  def test_resource_dep_git_url
+    resource = Resource.new
+    resource.url("git://github.com/foo/bar.git")
+    assert_instance_of GitDependency, @d.add(resource)
+  end
+
+  def test_resource_dep_gzip_url
+    resource = Resource.new
+    resource.url("http://foo.com/bar.tar.gz")
+    assert_nil @d.add(resource)
+  end
+
+  def test_resource_dep_xz_url
+    resource = Resource.new
+    resource.url("http://foo.com/bar.tar.xz")
+    assert_equal Dependency.new("xz", [:build]), @d.add(resource)
+  end
+
+  def test_resource_dep_raises_for_unknown_classes
+    resource = Resource.new
+    resource.url "foo", :using => Class.new
+    assert_raises(TypeError) { @d.add(resource) }
   end
 end

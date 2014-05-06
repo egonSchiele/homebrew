@@ -2,15 +2,15 @@ require 'formula'
 
 class Dwdiff < Formula
   homepage 'http://os.ghalkes.nl/dwdiff.html'
-  url 'http://os.ghalkes.nl/dist/dwdiff-2.0.5.tgz'
-  sha1 '896f3b8e7210c8e73c8850f88c9d3b6ba0c382f0'
+  url 'http://os.ghalkes.nl/dist/dwdiff-2.0.9.tgz'
+  sha1 '01cb2230b9147347bcfd1770898e435e4a57fa25'
 
   depends_on 'gettext'
   depends_on 'icu4c'
 
   def install
-    gettext = Formula.factory('gettext')
-    icu4c = Formula.factory('icu4c')
+    gettext = Formula['gettext']
+    icu4c = Formula['icu4c']
     ENV.append "CFLAGS", "-I#{gettext.include} -I#{icu4c.include}"
     ENV.append "LDFLAGS", "-L#{gettext.lib} -L#{icu4c.lib}"
     system "./configure", "--prefix=#{prefix}"

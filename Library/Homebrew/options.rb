@@ -50,8 +50,16 @@ end
 class Options
   include Enumerable
 
+  attr_reader :options
+  protected :options
+
   def initialize(*args)
     @options = Set.new(*args)
+  end
+
+  def initialize_copy(other)
+    super
+    @options = other.options.dup
   end
 
   def each(*args, &block)
@@ -73,6 +81,10 @@ class Options
 
   def &(o)
     Options.new(@options & o)
+  end
+
+  def |(o)
+    Options.new(@options | o)
   end
 
   def *(arg)

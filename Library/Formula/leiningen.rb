@@ -1,23 +1,25 @@
 require 'formula'
 
-class LeiningenJar < Formula
-  url 'https://leiningen.s3.amazonaws.com/downloads/leiningen-2.2.0-standalone.jar', :using => :nounzip
-  sha1 '694c01251f71954e9d1d7003b42dee1b3a393191'
-end
-
 class Leiningen < Formula
   homepage 'https://github.com/technomancy/leiningen'
-  url 'https://github.com/technomancy/leiningen/archive/2.2.0.tar.gz'
-  sha1 '0ca7e4ea68b490171d869bd5cc3912feba8d7ee9'
+  url 'https://github.com/technomancy/leiningen/archive/2.3.4.tar.gz'
+  sha1 '0fdccbc441237a1dde5dd16b5d9edb936c4a8c36'
 
   head 'https://github.com/technomancy/leiningen.git'
 
+  resource 'jar' do
+    url 'https://leiningen.s3.amazonaws.com/downloads/leiningen-2.3.4-standalone.jar'
+    sha1 '59718bb8553f25b8ca853f57dd259cd81eb16f91'
+  end
+
   def install
-    LeiningenJar.new.brew { libexec.install 'leiningen-2.2.0-standalone.jar' }
+    libexec.install resource('jar')
+
     # bin/lein autoinstalls and autoupdates, which doesn't work too well for us
     inreplace "bin/lein-pkg" do |s|
-      s.change_make_var! 'LEIN_JAR', libexec/'leiningen-2.2.0-standalone.jar'
+      s.change_make_var! 'LEIN_JAR', libexec/"leiningen-#{version}-standalone.jar"
     end
+
     bin.install "bin/lein-pkg" => 'lein'
     bash_completion.install 'bash_completion.bash' => 'lein-completion.bash'
     zsh_completion.install 'zsh_completion.zsh' => '_lein'
@@ -26,6 +28,31 @@ class Leiningen < Formula
   def caveats; <<-EOS.undent
     Dependencies will be installed to:
       $HOME/.m2/repository
+    To play around with Clojure run `lein repl` or `lein help`.
     EOS
   end
+
+  test do
+    (testpath/'project.clj').write <<-EOS.undent
+      (defproject brew-test "1.0"
+        :dependencies [[org.clojure/clojure "1.5.1"]])
+    EOS
+    (testpath/'src/brew_test/core.clj').write <<-EOS.undent
+      (ns brew-test.core)
+        (defn adds-two
+          "I add two to a number"
+          [x]
+          (+ x 2))
+    EOS
+    (testpath/'test/brew_test/core_test.clj').write <<-EOS.undent
+      (ns brew-test.core-test
+        (:require [clojure.test :refer :all]
+                  [brew-test.core :refer :all]))
+      (deftest canary-test
+        (testing "adds-two yields 4 for input of 2"
+          (is (= 4 (adds-two 2)))))
+    EOS
+    system "#{bin}/lein", 'test'
+  end
+
 end

@@ -2,7 +2,7 @@ require 'formula'
 
 class MysqlConnectorOdbc < Formula
   homepage 'http://dev.mysql.com/doc/refman/5.1/en/connector-odbc.html'
-  url 'http://mysql.mirror.iweb.ca/Downloads/Connector-ODBC/5.1/mysql-connector-odbc-5.1.12-src.tar.gz'
+  url 'http://mysql.mirror.iweb.ca/Connector-ODBC/5.1/mysql-connector-odbc-5.1.12-src.tar.gz'
   sha1 '6ee162de8a277cdb017c5c8eee6284601837e7da'
 
   # Won't compile against mysql-connector-c, as the C connector exports an API version
@@ -14,7 +14,7 @@ class MysqlConnectorOdbc < Formula
 
   def install
     args = ["-DCMAKE_INSTALL_PREFIX=#{prefix}"]
-    args << "-DCMAKE_OSX_ARCHITECTURES='i386;x86_64'" if build.universal?
+    args << "-DCMAKE_OSX_ARCHITECTURES='#{Hardware::CPU.universal_archs.as_cmake_arch_flags}'" if build.universal?
     args << "-DMYSQL_LIB:FILEPATH=#{HOMEBREW_PREFIX}/lib/libmysqlclient_r.a"
     ENV['MYSQL_DIR'] = HOMEBREW_PREFIX
     system 'cmake', ".", *args

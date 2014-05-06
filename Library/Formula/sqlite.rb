@@ -1,22 +1,19 @@
 require 'formula'
 
-class SqliteFunctions < Formula
-  url 'http://www.sqlite.org/contrib/download/extension-functions.c?get=25', :using  => :nounzip
-  sha1 'c68fa706d6d9ff98608044c00212473f9c14892f'
-  version '2010-01-06'
-end
-
-class SqliteDocs < Formula
-  url 'http://www.sqlite.org/2013/sqlite-doc-3071700.zip'
-  version '3.7.17'
-  sha1 '6b533b0a9a21eb2c2d1c9f278b8defbeb5a432a7'
-end
-
 class Sqlite < Formula
   homepage 'http://sqlite.org/'
-  url 'http://sqlite.org/2013/sqlite-autoconf-3071700.tar.gz'
-  version '3.7.17'
-  sha1 'e31958e56b1d7bef9433b1ff2e875c8c290d37f4'
+  url 'http://sqlite.org/2014/sqlite-autoconf-3080403.tar.gz'
+  version '3.8.4.3'
+  sha1 '70f3b100fa22e5bfebfe1b0a2102612e3c6c53fb'
+
+  bottle do
+    cellar :any
+    sha1 "f8099e15c5ffd67f861ea09651cb7ae0c4dfa359" => :mavericks
+    sha1 "c25f37d9cd188465dd568e9f49c22b95a2320835" => :mountain_lion
+    sha1 "d40eacfc3df225d16dc0908bf450b47a27a27d44" => :lion
+  end
+
+  keg_only :provided_by_osx, "OS X provides an older sqlite3."
 
   option :universal
   option 'with-docs', 'Install HTML documentation'
@@ -26,15 +23,22 @@ class Sqlite < Formula
 
   depends_on 'readline' => :recommended
 
-  keg_only :provided_by_osx, "OS X provides an older sqlite3."
+  resource 'functions' do
+    url 'http://www.sqlite.org/contrib/download/extension-functions.c?get=25', :using  => :nounzip
+    version '2010-01-06'
+    sha1 'c68fa706d6d9ff98608044c00212473f9c14892f'
+  end
+
+  resource 'docs' do
+    url 'http://sqlite.org/2014/sqlite-doc-3080403.zip'
+    version '3.8.4.3'
+    sha1 'ce8615799a9da7fc9d2cbcd2774d77da4ba72417'
+  end
 
   def install
-    ENV.append 'CPPFLAGS', "-DSQLITE_ENABLE_RTREE" unless build.without? "rtree"
+    ENV.append 'CPPFLAGS', "-DSQLITE_ENABLE_RTREE" if build.with? "rtree"
     ENV.append 'CPPFLAGS', "-DSQLITE_ENABLE_FTS3 -DSQLITE_ENABLE_FTS3_PARENTHESIS" if build.with? "fts"
-
-    # enable these options by default
     ENV.append 'CPPFLAGS', "-DSQLITE_ENABLE_COLUMN_METADATA"
-    ENV.append 'CPPFLAGS', "-DSQLITE_ENABLE_STAT3"
 
     ENV.universal_binary if build.universal?
 
@@ -42,7 +46,7 @@ class Sqlite < Formula
     system "make install"
 
     if build.with? "functions"
-      SqliteFunctions.new.brew { buildpath.install 'extension-functions.c' }
+      buildpath.install resource('functions')
       system ENV.cc, "-fno-common",
                      "-dynamiclib",
                      "extension-functions.c",
@@ -50,8 +54,7 @@ class Sqlite < Formula
                      *ENV.cflags.split
       lib.install "libsqlitefunctions.dylib"
     end
-
-    SqliteDocs.new.brew { doc.install Dir['*'] } if build.with? "docs"
+    doc.install resource('docs') if build.with? "docs"
   end
 
   def caveats
@@ -74,5 +77,20 @@ class Sqlite < Formula
          0.707106781186548
       EOS
     end
+  end
+
+  test do
+    path = testpath/"school.sql"
+    path.write <<-EOS.undent
+      create table students (name text, age integer);
+      insert into students (name, age) values ('Bob', 14);
+      insert into students (name, age) values ('Sue', 12);
+      insert into students (name, age) values ('Tim', 13);
+      select name from students order by age asc;
+    EOS
+
+    names = `#{bin}/sqlite3 < #{path}`.strip.split("\n")
+    assert_equal %w[Sue Tim Bob], names
+    assert_equal 0, $?.exitstatus
   end
 end

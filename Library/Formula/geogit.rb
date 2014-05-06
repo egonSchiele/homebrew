@@ -2,13 +2,11 @@ require 'formula'
 
 class Geogit < Formula
   homepage 'http://www.geogit.org'
-  url 'http://downloads.sourceforge.net/project/geogit/geogit-0.3.0/geogit-cli-app-0.3.0.zip'
-  sha1 'c01976d4592da0184e5459c264c115577c084ae3'
+  url 'https://downloads.sourceforge.net/project/geogit/geogit-0.8.0/geogit-cli-app-0.8.0.zip'
+  sha1 '343df635d61a26f6ff5603cdb1b51d2b062806ff'
 
   def install
-    bin.install "bin/geogit"
-    bin.install "bin/geogit-console"
+    bin.install "bin/geogit", "bin/geogit-console"
     prefix.install "repo"
-    man1.install Dir['man/*']
   end
 end

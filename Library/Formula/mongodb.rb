@@ -1,41 +1,59 @@
 require 'formula'
 
 class Mongodb < Formula
-  homepage 'http://www.mongodb.org/'
-  url 'http://fastdl.mongodb.org/osx/mongodb-osx-x86_64-2.4.5.tgz'
-  sha1 '04de29aab4ba532aa4c963113cb648b0c3d1b68e'
+  homepage "http://www.mongodb.org/"
+  url "http://downloads.mongodb.org/src/mongodb-src-r2.6.0.tar.gz"
+  sha1 "35f8efe61d992f4b71c9205a9dbcab50e745c9a3"
+  revision 1
 
-  devel do
-    url 'http://fastdl.mongodb.org/osx/mongodb-osx-x86_64-2.5.1.tgz'
-    sha1 '09b94856e6488a266b084355842b95cbd97cfd1e'
+  bottle do
+    sha1 "1c7b447ae2077b9efeaee2aa2c2474dc6b19ab6f" => :mavericks
+    sha1 "0004e3bfb60db586f6ced02769ccd1cf325e0929" => :mountain_lion
+    sha1 "7667f6cc36859fb9fced1885f382b76ae325583c" => :lion
   end
 
-  depends_on :arch => :x86_64
+  head do
+    url "https://github.com/mongodb/mongo.git"
+  end
+
+  option "with-boost", "Compile using installed boost, not the version shipped with mongodb"
+  depends_on "boost" => :optional
+
+  depends_on "scons" => :build
+  depends_on "openssl" => :optional
 
   def install
-    # Copy the prebuilt binaries to prefix
-    prefix.install Dir['*']
+    args = ["--prefix=#{prefix}", "-j#{ENV.make_jobs}"]
 
-    # Create the data and log directories under /var
+    cxx = ENV.cxx
+    if ENV.compiler == :clang && MacOS.version >= :mavericks
+      # when building on Mavericks with libc++
+      # Use --osx-version-min=10.9 such that the compiler defaults to libc++.
+      # Upstream issue discussing the default flags:
+      # https://jira.mongodb.org/browse/SERVER-12682
+      args << "--osx-version-min=10.9"
+    end
+
+    args << '--64' if MacOS.prefer_64_bit?
+    args << "--cc=#{ENV.cc}"
+    args << "--cxx=#{cxx}"
+
+    # --full installs development headers and client library, not just binaries
+    args << "--full"
+    args << "--use-system-boost" if build.with? "boost"
+
+    if build.with? 'openssl'
+      args << '--ssl'
+      args << "--extrapath=#{Formula["openssl"].opt_prefix}"
+    end
+
+    scons 'install', *args
+
+    (buildpath+"mongod.conf").write mongodb_conf
+    etc.install "mongod.conf"
+
     (var+'mongodb').mkpath
     (var+'log/mongodb').mkpath
-
-    # Write the configuration files
-    (prefix+'mongod.conf').write mongodb_conf
-
-    # Homebrew: it just works.
-    # NOTE plist updated to use prefix/mongodb!
-    mv bin/'mongod', prefix
-    (bin/'mongod').write <<-EOS.undent
-      #!/usr/bin/env ruby
-      ARGV << '--config' << '#{etc}/mongod.conf' unless ARGV.find { |arg|
-        arg =~ /^\s*\-\-config$/ or arg =~ /^\s*\-f$/
-      }
-      exec "#{prefix}/mongod", *ARGV
-    EOS
-
-    # copy the config file to etc if this is the first install.
-    etc.install prefix+'mongod.conf' unless File.exists? etc+"mongod.conf"
   end
 
   def mongodb_conf; <<-EOS.undent
@@ -51,7 +69,7 @@ class Mongodb < Formula
     EOS
   end
 
-  plist_options :manual => "mongod"
+  plist_options :manual => "mongod --config #{HOMEBREW_PREFIX}/etc/mongod.conf"
 
   def plist; <<-EOS.undent
     <?xml version="1.0" encoding="UTF-8"?>
@@ -62,8 +80,7 @@ class Mongodb < Formula
       <string>#{plist_name}</string>
       <key>ProgramArguments</key>
       <array>
-        <string>#{opt_prefix}/mongod</string>
-        <string>run</string>
+        <string>#{opt_bin}/mongod</string>
         <string>--config</string>
         <string>#{etc}/mongod.conf</string>
       </array>
@@ -90,5 +107,9 @@ class Mongodb < Formula
     </dict>
     </plist>
     EOS
+  end
+
+  test do
+    system "#{bin}/mongod", '--sysinfo'
   end
 end

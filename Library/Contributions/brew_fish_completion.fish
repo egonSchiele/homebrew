@@ -37,11 +37,6 @@ function __fish_complete_brew_argument
       return 0
     end
 
-    if contains -- $cmd tap
-      brew ls-taps
-      return 0
-    end
-
     if contains -- $cmd untap
       ls (brew --repository)/Library/Taps 2>/dev/null | sed 's/-/\//g'
       return 0
@@ -137,9 +132,6 @@ complete -c brew -s f -l force -n '__fish_complete_brew_command force' -d "Insta
 complete -c brew -s i -l interactive -n '__fish_complete_brew_command install' -d "Open a subshell to install manually"
 complete -c brew -l git -n '__fish_complete_brew_command install' -d 'Create a git repo (useful for making patches)'
 complete -c brew -l fresh -n '__fish_complete_brew_command install' -d "Do not reuse options from previous installs"
-complete -c brew -l use-clang -n '__fish_complete_brew_command install' -d "Attempt to compile using Clang"
-complete -c brew -l use-llvm -n '__fish_complete_brew_command install' -d "Attempt to compile using LLVM"
-complete -c brew -l use-gcc -n '__fish_complete_brew_command install' -d "Attempt to compile using GCC"
 complete -c brew -l build-from-source -n '__fish_complete_brew_command install' -d "Compile from source even if a bottle is provided"
 complete -c brew -l devel -n '__fish_complete_brew_command install' -d "Install the development version"
 complete -c brew -l HEAD -n '__fish_complete_brew_command install' -d "Install the HEAD version"

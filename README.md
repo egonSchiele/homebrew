@@ -29,7 +29,7 @@ Use this to copy things to bin:
 
 	bin.install(script_name)
 
-See the [Formula Cookbook](https://github.com/mxcl/homebrew/wiki/Formula-Cookbook) for more info and the different variables available to you.
+See the (Formula Cookbook)[https://github.com/mxcl/homebrew/wiki/Formula-Cookbook] for more info and the different variables available to you.
 
 # Pull new changes from main repo:
 
@@ -40,5 +40,4 @@ See the [Formula Cookbook](https://github.com/mxcl/homebrew/wiki/Formula-Cookboo
 
 1. You can (browse the Formula directory on GitHub)[http://github.com/mxcl/homebrew/tree/master/Library/Formula/].
 2. Or type `brew search` for a list.
-3. Or run `brew server` to browse packages off of a local web server.
-4. Or visit [braumeister.org][http://braumeister.org] to browse packages online.
+3. Or visit (braumeister.org)[braumeister] to browse packages online.

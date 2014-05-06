@@ -58,6 +58,19 @@ class PathnameExtensionTests < Test::Unit::TestCase
     assert_equal 'CONTENT', File.read(@file)
   end
 
+  def test_atomic_write_preserves_permissions
+    File.open(@file, "w", 0100777) { }
+    @file.atomic_write("CONTENT")
+    assert_equal 0100777 & ~File.umask, @file.stat.mode
+  end
+
+  def test_atomic_write_preserves_default_permissions
+    @file.atomic_write("CONTENT")
+    sentinel = @file.parent.join("sentinel")
+    touch sentinel
+    assert_equal sentinel.stat.mode, @file.stat.mode
+  end
+
   def test_cp
     touch @file
     mkdir_p @dir
@@ -95,14 +108,11 @@ class PathnameExtensionTests < Test::Unit::TestCase
   end
 
   def test_install_removes_original
-    orig_file = @file
     touch @file
+    @dst.install(@file)
 
-    @file, _ = @dst.install(@file)
-
-    assert_equal orig_file.basename, @file.basename
-    assert @file.exist?
-    assert !orig_file.exist?
+    assert (@dst/@file.basename).exist?
+    assert !@file.exist?
   end
 
   def setup_install_test
@@ -197,14 +207,9 @@ class PathnameExtensionTests < Test::Unit::TestCase
       assert((@dst+'bin').directory?)
       assert((@dst+'bin/a.txt').exist?)
       assert((@dst+'bin/b.txt').exist?)
-    end
-  end
 
-  def test_install_returns_installed_paths
-    foo, bar = @src+'foo', @src+'bar'
-    touch [foo, bar]
-    dirs = @dst.install(foo, bar)
-    assert_equal [@dst+'foo', @dst+'bar'], dirs
+      assert((@dst+'bin').readlink.relative?)
+    end
   end
 
   def test_install_creates_intermediate_directories

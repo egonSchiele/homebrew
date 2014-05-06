@@ -2,11 +2,10 @@ require 'formula'
 
 class GlibNetworking < Formula
   homepage 'https://launchpad.net/glib-networking'
-  url 'http://ftp.gnome.org/pub/GNOME/sources/glib-networking/2.36/glib-networking-2.36.2.tar.xz'
-  sha256 '2108d55b0af3eea56ce256830bcaf1519d6337e0054ef2eff80f2c0ef0eb23f9'
+  url 'http://ftp.gnome.org/pub/GNOME/sources/glib-networking/2.40/glib-networking-2.40.1.tar.xz'
+  sha256 '9fb3e54d049a480afdb814ff7452e7ab67e5d5f607ade230d7713f19922b5a28'
 
   depends_on 'pkg-config' => :build
-  depends_on 'xz' => :build
   depends_on 'intltool' => :build
   depends_on 'gettext'
   depends_on 'glib'
@@ -15,8 +14,9 @@ class GlibNetworking < Formula
 
   def install
     system "./configure", "--disable-dependency-tracking",
-                          "--without-ca-certificates",
-                          "--prefix=#{prefix}"
+                          "--disable-silent-rules",
+                          "--prefix=#{prefix}",
+                          "--with-ca-certificates=#{etc}/openssl/cert.pem"
     system "make install"
   end
 end

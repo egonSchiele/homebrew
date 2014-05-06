@@ -1,6 +1,4 @@
-#!/System/Library/Frameworks/Ruby.framework/Versions/1.8/usr/bin/ruby -W0
-
-# This script is called by formula_installer as a separate instance.
+# This script is loaded by formula_installer as a separate instance.
 # Rationale: Formula can use __END__, Formula can change ENV
 # Thrown exceptions are propogated back to the parent process over a pipe
 
@@ -13,6 +11,7 @@ at_exit do
 end
 
 require 'global'
+require 'cxxstdlib'
 require 'debrew' if ARGV.debug?
 
 def main
@@ -34,6 +33,7 @@ def main
 
   require 'hardware'
   require 'keg'
+  require 'extend/ENV'
 
   # Force any future invocations of sudo to require the user's password to be
   # re-entered. This is in-case any build script call sudo. Certainly this is
@@ -59,10 +59,14 @@ class Build
 
   def initialize(f)
     @f = f
-    # Expand requirements before dependencies, as requirements
-    # may add dependencies if a default formula is activated.
-    @reqs = expand_reqs
-    @deps = expand_deps
+
+    if ARGV.ignore_deps?
+      @deps = []
+      @reqs = []
+    else
+      @deps = expand_deps
+      @reqs = expand_reqs
+    end
   end
 
   def post_superenv_hacks
@@ -75,18 +79,19 @@ class Build
 
   def pre_superenv_hacks
     # Allow a formula to opt-in to the std environment.
-    ARGV.unshift '--env=std' if (f.env.std? or deps.any? { |d| d.name == 'scons' }) and
-      not ARGV.include? '--env=super'
+    if (f.env.std? || deps.any? { |d| d.name == "scons" }) && ARGV.env != "super"
+      ARGV.unshift "--env=std"
+    end
   end
 
   def expand_reqs
     f.recursive_requirements do |dependent, req|
-      if (req.optional? || req.recommended?) && dependent.build.without?(req.name)
+      if (req.optional? || req.recommended?) && dependent.build.without?(req)
         Requirement.prune
       elsif req.build? && dependent != f
         Requirement.prune
       elsif req.satisfied? && req.default_formula? && (dep = req.to_dependency).installed?
-        dependent.deps << dep
+        deps << dep
         Requirement.prune
       end
     end
@@ -94,10 +99,12 @@ class Build
 
   def expand_deps
     f.recursive_dependencies do |dependent, dep|
-      if (dep.optional? || dep.recommended?) && dependent.build.without?(dep.name)
+      if (dep.optional? || dep.recommended?) && dependent.build.without?(dep)
         Dependency.prune
       elsif dep.build? && dependent != f
         Dependency.prune
+      elsif dep.build?
+        Dependency.keep_but_prune_recursive_deps
       end
     end
   end
@@ -106,23 +113,24 @@ class Build
     keg_only_deps = deps.map(&:to_formula).select(&:keg_only?)
 
     pre_superenv_hacks
-    require 'superenv'
+
+    ENV.activate_extensions!
 
     deps.map(&:to_formula).each do |dep|
       opt = HOMEBREW_PREFIX/:opt/dep
-      fixopt(dep) unless opt.directory? or ARGV.ignore_deps?
+      fixopt(dep) unless opt.directory?
     end
 
     if superenv?
-      ENV.keg_only_deps = keg_only_deps.map(&:to_s)
-      ENV.deps = deps.map { |d| d.to_formula.to_s }
+      ENV.keg_only_deps = keg_only_deps.map(&:name)
+      ENV.deps = deps.map { |d| d.to_formula.name }
       ENV.x11 = reqs.any? { |rq| rq.kind_of?(X11Dependency) }
-      ENV.setup_build_environment
+      ENV.setup_build_environment(f)
       post_superenv_hacks
       reqs.each(&:modify_build_environment)
       deps.each(&:modify_build_environment)
     else
-      ENV.setup_build_environment
+      ENV.setup_build_environment(f)
       reqs.each(&:modify_build_environment)
       deps.each(&:modify_build_environment)
 
@@ -135,14 +143,6 @@ class Build
         ENV.prepend_path 'CMAKE_PREFIX_PATH', opt
         ENV.prepend 'LDFLAGS', "-L#{opt}/lib" if (opt/:lib).directory?
         ENV.prepend 'CPPFLAGS', "-I#{opt}/include" if (opt/:include).directory?
-      end
-    end
-
-    if f.fails_with? ENV.compiler
-      begin
-        ENV.send CompilerSelector.new(f).compiler
-      rescue CompilerSelectionError => e
-        raise e.message
       end
     end
 
@@ -166,8 +166,34 @@ class Build
       else
         f.prefix.mkpath
 
+        f.resources.each { |r| r.extend(ResourceDebugger) } if ARGV.debug?
+
         begin
           f.install
+
+          # This first test includes executables because we still
+          # want to record the stdlib for something that installs no
+          # dylibs.
+          stdlibs = Keg.new(f.prefix).detect_cxx_stdlibs
+          # This currently only tracks a single C++ stdlib per dep,
+          # though it's possible for different libs/executables in
+          # a given formula to link to different ones.
+          stdlib_in_use = CxxStdlib.new(stdlibs.first, ENV.compiler)
+          begin
+            stdlib_in_use.check_dependencies(f, deps)
+          rescue IncompatibleCxxStdlibs => e
+            opoo e.message
+          end
+
+          # This second check is recorded for checking dependencies,
+          # so executable are irrelevant at this point. If a piece
+          # of software installs an executable that links against libstdc++
+          # and dylibs against libc++, libc++-only dependencies can safely
+          # link against it.
+          stdlibs = Keg.new(f.prefix).detect_cxx_stdlibs :skip_executables => true
+
+          Tab.create(f, ENV.compiler, stdlibs.first,
+            Options.coerce(ARGV.options_only)).write
         rescue Exception => e
           if ARGV.debug?
             debrew e, f
@@ -185,7 +211,7 @@ end
 
 def fixopt f
   path = if f.linked_keg.directory? and f.linked_keg.symlink?
-    f.linked_keg.realpath
+    f.linked_keg.resolved_path
   elsif f.prefix.directory?
     f.prefix
   elsif (kids = f.rack.children).size == 1 and kids.first.directory?

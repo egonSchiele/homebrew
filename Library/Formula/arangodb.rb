@@ -2,67 +2,49 @@ require 'formula'
 
 class Arangodb < Formula
   homepage 'http://www.arangodb.org/'
-  url 'https://www.arangodb.org/repositories/archive/arangodb-1.3.2.tar.gz'
-  sha1 '00d59f4f61f6c94c6d6a0a0673949f4f27693633'
+  url 'https://www.arangodb.org/repositories/Source/ArangoDB-2.0.6.tar.gz'
+  sha1 '9d966ff924a4bca2d1ef17d33fe917c7c4315729'
 
   head "https://github.com/triAGENS/ArangoDB.git", :branch => 'unstable'
 
-  depends_on 'icu4c'
-  depends_on 'libev'
-  depends_on 'v8'
+  bottle do
+    sha1 "c17ee9db866e1f5e538079059b95e9a3c95582e4" => :mavericks
+    sha1 "ad19bbc961bb2f60c6842d52438d4315ab575611" => :mountain_lion
+    sha1 "42504ab4c99d33deb0940fe87ef47b34fbfd50e3" => :lion
+  end
+
+  depends_on 'go' => :build
+
+  def suffix
+    if build.stable?
+      return ""
+    else
+      return "-" + (build.devel? ? version : "unstable")
+    end
+  end
 
   def install
     args = %W[
       --disable-dependency-tracking
       --prefix=#{prefix}
       --disable-relative
-      --disable-all-in-one-icu
-      --disable-all-in-one-libev
-      --disable-all-in-one-v8
+      --enable-all-in-one-icu
+      --enable-all-in-one-libev
+      --enable-all-in-one-v8
       --enable-mruby
       --datadir=#{share}
       --localstatedir=#{var}
+      --program-suffix=#{suffix}
     ]
-
-    if build.devel?
-      args << "--program-suffix=-#{version}"
-    end
-
-    if build.head?
-      args << "--program-suffix=-unstable"
-    end
 
     system "./configure", *args
     system "make install"
 
-    (var+'arangodb').mkpath
-    (var+'log/arangodb').mkpath
+    (var/'arangodb').mkpath
+    (var/'log/arangodb').mkpath
   end
 
-  plist_options :manual => "#{HOMEBREW_PREFIX}/opt/arangodb/sbin/arangod"
-
-  def caveats; <<-EOS.undent
-    ArangoDB (http://www.arangodb.org)
-      A universal open-source database with a flexible data model for documents,
-      graphs, and key-values.
-
-    First Steps with ArangoDB:
-      http:/www.arangodb.org/quickstart
-
-    Upgrading ArangoDB:
-      http://www.arangodb.org/manuals/current/Upgrading.html
-
-    Configuration file:
-      /usr/local/etc/arangodb/arangod.conf
-
-    Start ArangoDB server:
-      unix> /usr/local/sbin/arangod
-
-    Start ArangoDB shell client (use empty password):
-      unix> /usr/local/bin/arangosh
-
-    EOS
-  end
+  plist_options :manual => "#{HOMEBREW_PREFIX}/opt/arangodb/sbin/arangod --log.file -"
 
   def plist; <<-EOS.undent
     <?xml version="1.0" encoding="UTF-8"?>
@@ -75,7 +57,7 @@ class Arangodb < Formula
         <string>#{plist_name}</string>
         <key>ProgramArguments</key>
         <array>
-          <string>#{opt_prefix}/sbin/arangod</string>
+          <string>#{opt_sbin}/arangod</string>
           <string>-c</string>
           <string>#{etc}/arangodb/arangod.conf</string>
         </array>

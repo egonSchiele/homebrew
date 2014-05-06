@@ -6,20 +6,45 @@ module Homebrew extend self
   def install
     raise FormulaUnspecifiedError if ARGV.named.empty?
 
+    {
+      'gcc' => 'gcc-4.2',
+      'llvm' => 'llvm-gcc',
+      'clang' => 'clang'
+    }.each_pair do |old, new|
+      opt = "--use-#{old}"
+      if ARGV.include? opt then opoo <<-EOS.undent
+        #{opt.inspect} is deprecated and will be removed in a future version.
+        Please use "--cc=#{new}" instead.
+        EOS
+      end
+    end
+
     if ARGV.include? '--head'
       raise "Specify `--HEAD` in uppercase to build from trunk."
     end
 
     ARGV.named.each do |name|
       # if a formula has been tapped ignore the blacklisting
-      if not File.file? HOMEBREW_REPOSITORY/"Library/Formula/#{name}.rb"
+      unless Formula.path(name).file?
         msg = blacklisted? name
         raise "No available formula for #{name}\n#{msg}" if msg
+      end
+      if not File.exist? name and name =~ HOMEBREW_TAP_FORMULA_REGEX then
+        require 'cmd/tap'
+        install_tap $1, $2
       end
     end unless ARGV.force?
 
     perform_preinstall_checks
-    ARGV.formulae.each { |f| install_formula(f) }
+
+    begin
+      ARGV.formulae.each { |f| install_formula(f) }
+    rescue FormulaUnavailableError => e
+      ofail e.message
+      require 'cmd/search'
+      puts 'Searching taps...'
+      puts_columns(search_taps(query_regexp(e.name)))
+    end
   end
 
   def check_ppc
@@ -39,7 +64,9 @@ module Homebrew extend self
   def check_xcode
     require 'cmd/doctor'
     checks = Checks.new
-    %w{check_xcode_clt check_xcode_license_approved}.each do |check|
+    doctor_methods = ['check_xcode_clt', 'check_xcode_license_approved',
+                      'check_for_osx_gcc_installer']
+    doctor_methods.each do |check|
       out = checks.send(check)
       opoo out unless out.nil?
     end
@@ -66,12 +93,23 @@ module Homebrew extend self
     check_ppc
     check_writable_install_location
     check_xcode
-    check_macports
     check_cellar
   end
 
   def install_formula f
     fi = FormulaInstaller.new(f)
+    fi.options             = f.build.used_options
+    fi.ignore_deps         = ARGV.ignore_deps? || ARGV.interactive?
+    fi.only_deps           = ARGV.only_deps?
+    fi.build_bottle        = ARGV.build_bottle?
+    fi.build_from_source   = ARGV.build_from_source?
+    fi.force_bottle        = ARGV.force_bottle?
+    fi.interactive         = ARGV.interactive?
+    fi.interactive       &&= :git if ARGV.flag? "--git"
+    fi.verbose             = ARGV.verbose?
+    fi.verbose           &&= :quieter if ARGV.quieter?
+    fi.debug               = ARGV.debug?
+    fi.prelude
     fi.install
     fi.caveats
     fi.finish
@@ -82,5 +120,6 @@ module Homebrew extend self
     opoo e.message
   rescue CannotInstallFormulaError => e
     ofail e.message
+    check_macports
   end
 end

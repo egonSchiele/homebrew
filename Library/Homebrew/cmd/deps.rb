@@ -21,20 +21,30 @@ module Homebrew extend self
       puts_deps_tree ARGV.formulae
     else
       raise FormulaUnspecifiedError if ARGV.named.empty?
-      all_deps = deps_for_formulae ARGV.formulae
-      all_deps.sort! unless mode.topo_order?
+      all_deps = deps_for_formulae(ARGV.formulae, !ARGV.one?)
+      all_deps = all_deps.sort_by(&:name) unless mode.topo_order?
       puts all_deps
     end
   end
 
-  def deps_for_formulae(formulae)
-    formulae.map do |f|
-      ARGV.one? ? f.deps.default : f.recursive_dependencies
-    end.inject(&:&).map(&:name)
+  def deps_for_formula(f, recursive=false)
+    if recursive
+      deps = f.recursive_dependencies
+      reqs = f.recursive_requirements
+    else
+      deps = f.deps.default
+      reqs = f.requirements
+    end
+
+    deps + reqs.select(&:default_formula?).map(&:to_dependency)
+  end
+
+  def deps_for_formulae(formulae, recursive=false)
+    formulae.map {|f| deps_for_formula(f, recursive) }.inject(&:&)
   end
 
   def puts_deps(formulae)
-    formulae.each { |f| puts "#{f.name}: #{f.deps*' '}" }
+    formulae.each { |f| puts "#{f.name}: #{deps_for_formula(f).sort_by(&:name) * " "}" }
   end
 
   def puts_deps_tree(formulae)
@@ -46,9 +56,12 @@ module Homebrew extend self
   end
 
   def recursive_deps_tree f, level
+    f.requirements.select(&:default_formula?).each do |req|
+      puts "|  "*(level-1) + "|- :#{req.to_dependency.name}"
+    end
     f.deps.default.each do |dep|
-      puts "|  "*(level-1)+"|- "+dep.to_s
-      recursive_deps_tree(Formula.factory(dep.to_s), level+1)
+      puts "|  "*(level-1) + "|- #{dep.name}"
+      recursive_deps_tree(Formulary.factory(dep.name), level+1)
     end
   end
 end

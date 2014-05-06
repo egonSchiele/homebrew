@@ -2,8 +2,8 @@ require 'formula'
 
 class Libfreenect < Formula
   homepage 'http://openkinect.org'
-  url 'https://github.com/OpenKinect/libfreenect/archive/v0.1.2.tar.gz'
-  sha1 'a20aada4c84a29f10ef1953c81404d2f256b21e6'
+  url 'https://github.com/OpenKinect/libfreenect/archive/v0.4.1.tar.gz'
+  sha1 'a72bf3d60a859fb5b54b30d6e5d52c8359c07888'
 
   head 'https://github.com/OpenKinect/libfreenect.git'
 
@@ -15,7 +15,7 @@ class Libfreenect < Formula
   def install
     if build.universal?
       ENV.universal_binary
-      ENV['CMAKE_OSX_ARCHITECTURES'] = "i386;x86_64"
+      ENV['CMAKE_OSX_ARCHITECTURES'] = Hardware::CPU.universal_archs.as_cmake_arch_flags
     end
     mkdir "build" do
       system "cmake", "..", *std_cmake_args

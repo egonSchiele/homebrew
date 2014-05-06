@@ -1,6 +1,7 @@
 require 'dependable'
 require 'dependency'
 require 'build_environment'
+require 'extend/ENV'
 
 # A base class for non-formula requirements needed by formulae.
 # A "fatal" requirement is one that will fail the build if it is not present.
@@ -9,12 +10,13 @@ class Requirement
   include Dependable
   extend BuildEnvironmentDSL
 
-  attr_reader :tags, :name
+  attr_reader :tags, :name, :option_name
 
   def initialize(tags=[])
     @tags = tags
     @tags << :build if self.class.build
     @name ||= infer_name
+    @option_name = @name
   end
 
   # The message to show when the requirement is not met.
@@ -30,6 +32,10 @@ class Requirement
     infer_env_modification(result)
     !!result
   end
+
+  # Can overridden to optionally prevent a formula with this requirement from
+  # pouring a bottle.
+  def pour_bottle?; true end
 
   # Overriding #fatal? is deprecated.
   # Pass a boolean to the fatal DSL method instead.
@@ -68,9 +74,7 @@ class Requirement
   def to_dependency
     f = self.class.default_formula
     raise "No default formula defined for #{inspect}" if f.nil?
-    dep = Dependency.new(f, tags)
-    dep.env_proc = method(:modify_build_environment)
-    dep
+    Dependency.new(f, tags, method(:modify_build_environment), name)
   end
 
   private
@@ -86,11 +90,15 @@ class Requirement
     case o
     when Pathname
       self.class.env do
-        unless ENV["PATH"].split(":").include?(o.parent.to_s)
-          ENV.append("PATH", o.parent, ":")
+        unless ENV["PATH"].split(File::PATH_SEPARATOR).include?(o.parent.to_s)
+          ENV.append_path("PATH", o.parent)
         end
       end
     end
+  end
+
+  def which(cmd)
+    super(cmd, ORIGINAL_PATHS.join(File::PATH_SEPARATOR))
   end
 
   class << self
@@ -117,11 +125,7 @@ class Requirement
       if instance_variable_defined?(:@satisfied)
         @satisfied
       elsif @options[:build_env]
-        require 'superenv'
-        ENV.with_build_environment do
-          ENV.userpaths!
-          yield @proc
-        end
+        ENV.with_build_environment { yield @proc }
       else
         yield @proc
       end
@@ -150,21 +154,6 @@ class Requirement
         end
       end
 
-      # We special case handling of X11Dependency and its subclasses to
-      # ensure the correct dependencies are present in the final list.
-      # If an X11Dependency is present after filtering, we eliminate
-      # all X11Dependency::Proxy objects from the list. If there aren't
-      # any X11Dependency objects, then we eliminate all but one of the
-      # proxy objects.
-      proxy = unless reqs.any? { |r| r.instance_of?(X11Dependency) }
-                reqs.find { |r| r.kind_of?(X11Dependency::Proxy) }
-              end
-
-      reqs.reject! do |r|
-        r.kind_of?(X11Dependency::Proxy)
-      end
-
-      reqs << proxy unless proxy.nil?
       reqs
     end
 
@@ -173,7 +162,7 @@ class Requirement
         if block_given?
           yield dependent, req
         elsif req.optional? || req.recommended?
-          prune unless dependent.build.with?(req.name)
+          prune unless dependent.build.with?(req)
         end
       end
     end

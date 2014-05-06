@@ -49,28 +49,25 @@ class FormulaValidationTests < Test::Unit::TestCase
   def test_validates_when_initialize_overridden
     assert_invalid :name do
       formula do
-        def initialize; end
+        def initialize(*); end
       end.brew {}
     end
   end
 
   def test_devel_only_valid
-    assert_nothing_raised do
-      formula do
-        devel do
-          url "foo"
-          version "1.0"
-        end
+    f = formula do
+      devel do
+        url "foo"
+        version "1.0"
       end
     end
+
+    assert_equal "foo", f.url
   end
 
   def test_head_only_valid
-    assert_nothing_raised do
-      formula do
-        head "foo"
-      end
-    end
+    f = formula { head "foo" }
+    assert_equal "foo", f.url
   end
 
   def test_empty_formula_invalid

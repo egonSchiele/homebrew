@@ -2,8 +2,8 @@ require 'formula'
 
 class Gist < Formula
   homepage 'https://github.com/defunkt/gist'
-  url 'https://github.com/defunkt/gist/archive/v4.0.3.tar.gz'
-  sha1 '4c88ac3550833154beab134d7ccc9ec8330ad281'
+  url 'https://github.com/defunkt/gist/archive/v4.2.1.tar.gz'
+  sha1 'a081ce290e601263c2e42cc3c584c2cd23f06951'
   head 'https://github.com/defunkt/gist.git'
 
   def install

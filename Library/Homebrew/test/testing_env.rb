@@ -21,19 +21,21 @@ HOMEBREW_CACHE         = HOMEBREW_PREFIX.parent+'cache'
 HOMEBREW_CACHE_FORMULA = HOMEBREW_PREFIX.parent+'formula_cache'
 HOMEBREW_CELLAR        = HOMEBREW_PREFIX.parent+'cellar'
 HOMEBREW_LOGS          = HOMEBREW_PREFIX.parent+'logs'
+HOMEBREW_TEMP          = Pathname.new(ENV.fetch('HOMEBREW_TEMP', '/tmp'))
 HOMEBREW_USER_AGENT    = 'Homebrew'
 HOMEBREW_WWW           = 'http://example.com'
 HOMEBREW_CURL_ARGS     = '-fsLA'
 HOMEBREW_VERSION       = '0.9-test'
 
+HOMEBREW_TAP_FORMULA_REGEX = %r{^([\w-]+)/([\w-]+)/([\w-]+)$}
+
 RUBY_BIN = Pathname.new(RbConfig::CONFIG['bindir'])
 RUBY_PATH = RUBY_BIN + RbConfig::CONFIG['ruby_install_name'] + RbConfig::CONFIG['EXEEXT']
 
-MACOS = true
 MACOS_FULL_VERSION = `/usr/bin/sw_vers -productVersion`.chomp
-MACOS_VERSION = ENV.fetch('MACOS_VERSION') { MACOS_FULL_VERSION[/10\.\d+/] }.to_f
+MACOS_VERSION = ENV.fetch('MACOS_VERSION') { MACOS_FULL_VERSION[/10\.\d+/] }
 
-ORIGINAL_PATHS = ENV['PATH'].split(':').map{ |p| Pathname.new(p).expand_path rescue nil }.compact.freeze
+ORIGINAL_PATHS = ENV['PATH'].split(File::PATH_SEPARATOR).map{ |p| Pathname.new(p).expand_path rescue nil }.compact.freeze
 
 module Homebrew extend self
   include FileUtils
@@ -72,7 +74,7 @@ require 'test/unit' # must be after at_exit
 require 'extend/ARGV' # needs to be after test/unit to avoid conflict with OptionsParser
 require 'extend/ENV'
 ARGV.extend(HomebrewArgvExtension)
-ENV.extend(HomebrewEnvExtension)
+ENV.extend(Stdenv)
 
 begin
   require 'rubygems'
@@ -97,6 +99,10 @@ module VersionAssertions
   def assert_version_nil url
     assert_nil Version.parse(url)
   end
+
+  def assert_version_tokens tokens, version
+    assert_equal tokens, version.send(:tokens).map(&:to_s)
+  end
 end
 
 module Test::Unit::Assertions
@@ -107,6 +113,9 @@ module Test::Unit::Assertions
 end
 
 class Test::Unit::TestCase
+  TEST_SHA1   = "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef".freeze
+  TEST_SHA256 = "deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef".freeze
+
   def formula(*args, &block)
     @_f = Class.new(Formula, &block).new(*args)
   end

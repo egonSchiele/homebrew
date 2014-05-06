@@ -2,8 +2,8 @@ require 'formula'
 
 class Sqsh < Formula
   homepage 'http://www.sqsh.org/'
-  url 'http://downloads.sourceforge.net/project/sqsh/sqsh/sqsh-2.2.0/sqsh-2.2.0.tgz'
-  sha1 'f3c2276fe53c05ddf51173fd109c5111c90879c6'
+  url 'https://downloads.sourceforge.net/project/sqsh/sqsh/sqsh-2.3/sqsh-2.3.tgz'
+  sha1 '225bd6cfa5dcad4fae419becc5217fb3465c66d1'
 
   option "enable-x", "Enable X windows support"
 
@@ -18,8 +18,9 @@ class Sqsh < Formula
       --with-readline
     ]
 
-    ENV['LIBDIRS'] = Readline.new('readline').lib
-    ENV['INCDIRS'] = Readline.new('readline').include
+    readline = Formula["readline"]
+    ENV['LIBDIRS'] = readline.opt_lib
+    ENV['INCDIRS'] = readline.opt_include
 
     if build.include? "enable-x"
       args << "--with-x"
@@ -27,7 +28,7 @@ class Sqsh < Formula
       args << "--x-includes=#{MacOS::X11.include}"
     end
 
-    ENV['SYBASE'] = Freetds.new("freetds").prefix
+    ENV['SYBASE'] = Formula["freetds"].opt_prefix
     system "./configure", *args
     system "make", "install"
     system "make", "install.man"

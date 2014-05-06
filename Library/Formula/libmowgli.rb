@@ -7,8 +7,11 @@ class Libmowgli < Formula
 
   head 'https://github.com/atheme/libmowgli-2.git'
 
+  depends_on "openssl"
+
   def install
-    system "./configure", "--prefix=#{prefix}", "--with-openssl=/usr"
+    system "./configure", "--prefix=#{prefix}",
+                          "--with-openssl=#{Formula["openssl"].opt_prefix}"
     system "make"
     system "make", "install"
   end
@@ -28,7 +31,7 @@ class Libmowgli < Formula
         return EXIT_SUCCESS;
       }
     EOS
-    system ENV.cc, "-I#{self.installed_prefix}/include/libmowgli-2", "-o", "test", "test.c", "-lmowgli-2"
+    system ENV.cc, "-I#{include}/libmowgli-2", "-o", "test", "test.c", "-lmowgli-2"
     system "./test"
   end
 end

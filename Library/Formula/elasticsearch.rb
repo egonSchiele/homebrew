@@ -2,12 +2,13 @@ require 'formula'
 
 class Elasticsearch < Formula
   homepage 'http://www.elasticsearch.org'
-  url 'https://download.elasticsearch.org/elasticsearch/elasticsearch/elasticsearch-0.90.2.tar.gz'
-  sha1 'b09f5c656912e5c08c9eefa7e95566f1ba7a1ea5'
+  url 'https://download.elasticsearch.org/elasticsearch/elasticsearch/elasticsearch-1.1.1.tar.gz'
+  sha1 '8495b928984945728635f805f6e2e7183902a3ea'
 
-  head 'https://github.com/elasticsearch/elasticsearch.git'
-
-  depends_on 'maven' if build.head?
+  head do
+    url 'https://github.com/elasticsearch/elasticsearch.git'
+    depends_on 'maven'
+  end
 
   def cluster_name
     "elasticsearch_#{ENV['USER']}"
@@ -39,7 +40,7 @@ class Elasticsearch < Formula
       rm_rf "#{prefix}/target/"
     end
 
-    # Set up ElasticSearch for local development:
+    # Set up Elasticsearch for local development:
     inreplace "#{prefix}/config/elasticsearch.yml" do |s|
       # 1. Give the cluster a unique name
       s.gsub! /#\s*cluster\.name\: elasticsearch/, "cluster.name: #{cluster_name}"
@@ -82,7 +83,7 @@ class Elasticsearch < Formula
     EOS
   end
 
-  plist_options :manual => "elasticsearch -f -D es.config=#{HOMEBREW_PREFIX}/opt/elasticsearch/config/elasticsearch.yml"
+  plist_options :manual => "elasticsearch --config=#{HOMEBREW_PREFIX}/opt/elasticsearch/config/elasticsearch.yml"
 
   def plist; <<-EOS.undent
       <?xml version="1.0" encoding="UTF-8"?>
@@ -96,8 +97,7 @@ class Elasticsearch < Formula
           <key>ProgramArguments</key>
           <array>
             <string>#{HOMEBREW_PREFIX}/bin/elasticsearch</string>
-            <string>-f</string>
-            <string>-D es.config=#{prefix}/config/elasticsearch.yml</string>
+            <string>--config=#{prefix}/config/elasticsearch.yml</string>
           </array>
           <key>EnvironmentVariables</key>
           <dict>

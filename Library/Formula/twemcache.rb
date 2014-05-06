@@ -8,6 +8,7 @@ class Twemcache < Formula
 
   option "enable-debug", "Debug mode with assertion panics enabled"
 
+  depends_on :autoconf
   depends_on :automake
   depends_on 'libevent'
 
@@ -19,7 +20,8 @@ class Twemcache < Formula
 
     args = ["--prefix=#{prefix}"]
     if build.include? "enable-debug"
-      ENV['CFLAGS'] += "-ggdb3 -O0"
+      ENV.O0
+      ENV.append "CFLAGS", "-ggdb3"
       args << "--enable-debug=full"
     end
 

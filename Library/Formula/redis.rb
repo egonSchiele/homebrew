@@ -2,8 +2,14 @@ require 'formula'
 
 class Redis < Formula
   homepage 'http://redis.io/'
-  url 'http://redis.googlecode.com/files/redis-2.6.14.tar.gz'
-  sha1 'f56a5d4891e94ebd89f7e63c3e9151d1106dedd5'
+  url "http://download.redis.io/releases/redis-2.8.9.tar.gz"
+  sha1 "003ccdc175816e0a751919cf508f1318e54aac1e"
+
+  bottle do
+    sha1 "92ad2c1ffa9d54af09439e4ed99123a0f52fab32" => :mavericks
+    sha1 "8e7dc81f46bb55d0706d539d6b9ea132ff448024" => :mountain_lion
+    sha1 "514e7a7efe25016899f56053338e2100ffea2dce" => :lion
+  end
 
   head 'https://github.com/antirez/redis.git', :branch => 'unstable'
 
@@ -14,7 +20,7 @@ class Redis < Formula
 
   def install
     # Architecture isn't detected correctly on 32bit Snow Leopard without help
-    ENV["OBJARCH"] = MacOS.prefer_64_bit? ? "-arch x86_64" : "-arch i386"
+    ENV["OBJARCH"] = "-arch #{MacOS.preferred_arch}"
 
     # Head and stable have different code layouts
     src = (buildpath/'src/Makefile').exist? ? buildpath/'src' : buildpath
@@ -30,14 +36,8 @@ class Redis < Formula
       s.gsub! "\# bind 127.0.0.1", "bind 127.0.0.1"
     end
 
-    # Fix redis upgrade from 2.4 to 2.6.
-    if File.exists?(etc/'redis.conf') && !File.readlines(etc/'redis.conf').grep(/^vm-enabled/).empty?
-      mv etc/'redis.conf', etc/'redis.conf.old'
-      ohai "Your redis.conf will not work with 2.6; moved it to redis.conf.old"
-    end
-
-    etc.install 'redis.conf' unless (etc/'redis.conf').exist?
-    etc.install 'sentinel.conf' => 'redis-sentinel.conf' unless (etc/'redis-sentinel.conf').exist?
+    etc.install 'redis.conf'
+    etc.install 'sentinel.conf' => 'redis-sentinel.conf'
   end
 
   plist_options :manual => "redis-server #{HOMEBREW_PREFIX}/etc/redis.conf"
@@ -56,7 +56,7 @@ class Redis < Formula
         <string>#{plist_name}</string>
         <key>ProgramArguments</key>
         <array>
-          <string>#{opt_prefix}/bin/redis-server</string>
+          <string>#{opt_bin}/redis-server</string>
           <string>#{etc}/redis.conf</string>
         </array>
         <key>RunAtLoad</key>
@@ -70,5 +70,9 @@ class Redis < Formula
       </dict>
     </plist>
     EOS
+  end
+
+  test do
+    system "#{bin}/redis-server", "--test-memory", "2"
   end
 end

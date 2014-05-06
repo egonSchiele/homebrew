@@ -2,45 +2,42 @@ require 'formula'
 
 class Sip < Formula
   homepage 'http://www.riverbankcomputing.co.uk/software/sip'
-  url 'http://download.sf.net/project/pyqt/sip/sip-4.14.7/sip-4.14.7.tar.gz'
-  sha1 'ee048f6db7257d1eae2d9d2e407c1657c8888023'
+  url 'http://download.sf.net/project/pyqt/sip/sip-4.15.5/sip-4.15.5.tar.gz'
+  sha1 '1e1c912981930754885ba47d708e2664d1c6ba9e'
 
   head 'http://www.riverbankcomputing.co.uk/hg/sip', :using => :hg
 
   depends_on :python => :recommended
   depends_on :python3 => :optional
 
+  if build.without?("python3") && build.without?("python")
+    odie "sip: --with-python3 must be specified when using --without-python"
+  end
+
   def install
     if build.head?
       # Link the Mercurial repository into the download directory so
-      # buid.py can use it to figure out a version number.
-      ln_s downloader.cached_location + '.hg', '.hg'
-      system python, "build.py", "prepare"
+      # build.py can use it to figure out a version number.
+      ln_s cached_download + ".hg", ".hg"
+      # build.py doesn't run with python3
+      system "python", "build.py", "prepare"
     end
 
-    # The python block is run once for each python (2.x and 3.x if requested)
-    python do
-      # To have sip (for 2.x) and sip3 for python3, we rename the sip binary:
-      inreplace "configure.py", 'os.path.join(opts.sipbindir, "sip")', "os.path.join(opts.sipbindir, 'sip3')" if python3
-
-      # Set --destdir such that the python modules will be in the HOMEBREWPREFIX/lib/pythonX.Y/site-packages
+    Language::Python.each_python(build) do |python, version|
+      # Note the binary `sip` is the same for python 2.x and 3.x
       system python, "configure.py",
-                              "--destdir=#{lib}/#{python.xy}/site-packages",
-                              "--bindir=#{bin}",
-                              "--incdir=#{include}",
-                              "--sipdir=#{HOMEBREW_PREFIX}/share/sip#{python.if3then3}"
+                     "--deployment-target=#{MacOS.version}",
+                     "--destdir=#{lib}/python#{version}/site-packages",
+                     "--bindir=#{bin}",
+                     "--incdir=#{include}",
+                     "--sipdir=#{HOMEBREW_PREFIX}/share/sip"
       system "make"
-      bin.install 'sipgen/sip' => 'sip3' if python3
-      system "make install"
-      system "make clean"
+      system "make", "install"
+      system "make", "clean"
     end
-
   end
 
   def caveats
-    s = ''
-    s += python.standard_caveats if python
-    s += "The sip-dir for Python #{python.version.major}.x is #{HOMEBREW_PREFIX}/share/sip#{python.if3then3}."
-    s
+    "The sip-dir for Python is #{HOMEBREW_PREFIX}/share/sip."
   end
 end
