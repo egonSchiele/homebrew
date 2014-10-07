@@ -3,14 +3,19 @@ require 'formula'
 class LuaRequirement < Requirement
   fatal true
   default_formula 'lua'
-
   satisfy { which 'lua' }
 end
 
 class Gnuplot < Formula
   homepage 'http://www.gnuplot.info'
-  url 'https://downloads.sourceforge.net/project/gnuplot/gnuplot/4.6.5/gnuplot-4.6.5.tar.gz'
-  sha256 'e550f030c7d04570e89c3d4e3f6e82296816508419c86ab46c4dd73156519a2d'
+  url 'https://downloads.sourceforge.net/project/gnuplot/gnuplot/4.6.6/gnuplot-4.6.6.tar.gz'
+  sha256 '1f19596fd09045f22225afbfec11fa91b9ad1d95b9f48406362f517d4f130274'
+
+  bottle do
+    sha1 "57088a95a146104b121d7048b4db854e2b056f26" => :mavericks
+    sha1 "f189e3c8fb8da9a10434f6cf1356f5c76b7305d8" => :mountain_lion
+    sha1 "b9dd1659fa55d27da9f657e9dd60102a589b4881" => :lion
+  end
 
   head do
     url 'cvs://:pserver:anonymous:@gnuplot.cvs.sourceforge.net:/cvsroot/gnuplot:gnuplot'
@@ -30,11 +35,15 @@ class Gnuplot < Formula
   option 'tests',  'Verify the build with make check (1 min)'
   option 'without-emacs', 'Do not build Emacs lisp files'
   option 'latex',  'Build with LaTeX support'
-  option 'without-aquaterm', 'Do not build AquaTerm support'
+  option 'with-aquaterm', 'Build with AquaTerm support'
 
   depends_on 'pkg-config' => :build
   depends_on LuaRequirement unless build.include? 'nolua'
   depends_on 'readline'
+  depends_on "libpng"
+  depends_on "jpeg"
+  depends_on "libtiff"
+  depends_on "fontconfig"
   depends_on 'pango'       if build.include? 'cairo' or build.include? 'wx'
   depends_on :x11          if build.with? "x"
   depends_on 'pdflib-lite' if build.include? 'pdf'
@@ -108,7 +117,12 @@ class Gnuplot < Formula
   end
 
   test do
-    system "#{bin}/gnuplot", "--version"
+    system "#{bin}/gnuplot", "-e", <<-EOS.undent
+        set terminal png;
+        set output "#{testpath}/image.png";
+        plot sin(x);
+    EOS
+    assert (testpath/"image.png").exist?
   end
 
   def caveats

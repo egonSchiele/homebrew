@@ -1,71 +1,73 @@
-require 'formula'
+require "formula"
 
 class Mongodb < Formula
   homepage "http://www.mongodb.org/"
-  url "http://downloads.mongodb.org/src/mongodb-src-r2.6.0.tar.gz"
-  sha1 "35f8efe61d992f4b71c9205a9dbcab50e745c9a3"
+  url "http://downloads.mongodb.org/src/mongodb-src-r2.6.4.tar.gz"
+  sha1 "16dda6d8b1156194fc09b5ad72e58612d06abada"
   revision 1
 
   bottle do
-    sha1 "1c7b447ae2077b9efeaee2aa2c2474dc6b19ab6f" => :mavericks
-    sha1 "0004e3bfb60db586f6ced02769ccd1cf325e0929" => :mountain_lion
-    sha1 "7667f6cc36859fb9fced1885f382b76ae325583c" => :lion
+    revision 1
+    sha1 "f0d3195b48bbfa726f7c263a841610f5e96d3527" => :mavericks
+    sha1 "d4cb743f2d8bd7c72846f361199e5e6021724d9f" => :mountain_lion
+    sha1 "d03344c6d6bea73d8480af83b32f0337d35df5d9" => :lion
   end
 
-  head do
-    url "https://github.com/mongodb/mongo.git"
+  devel do
+    url "http://downloads.mongodb.org/src/mongodb-src-r2.7.6.tar.gz"
+    sha1 "862e3483a91f839352d2a5f2e0ad3aa7baa7314d"
   end
+
+  head "https://github.com/mongodb/mongo.git"
 
   option "with-boost", "Compile using installed boost, not the version shipped with mongodb"
   depends_on "boost" => :optional
 
+  depends_on :macos => :snow_leopard
   depends_on "scons" => :build
   depends_on "openssl" => :optional
 
+  # Yosemite build fix, until solved upstream
+  # https://jira.mongodb.org/browse/SERVER-14204
+  patch :DATA if MacOS.version == "10.10"
+
   def install
-    args = ["--prefix=#{prefix}", "-j#{ENV.make_jobs}"]
-
-    cxx = ENV.cxx
-    if ENV.compiler == :clang && MacOS.version >= :mavericks
-      # when building on Mavericks with libc++
-      # Use --osx-version-min=10.9 such that the compiler defaults to libc++.
-      # Upstream issue discussing the default flags:
-      # https://jira.mongodb.org/browse/SERVER-12682
-      args << "--osx-version-min=10.9"
-    end
-
-    args << '--64' if MacOS.prefer_64_bit?
-    args << "--cc=#{ENV.cc}"
-    args << "--cxx=#{cxx}"
+    args = %W[
+      --prefix=#{prefix}
+      -j#{ENV.make_jobs}
+      --cc=#{ENV.cc}
+      --cxx=#{ENV.cxx}
+      --osx-version-min=#{MacOS.version}
+    ]
 
     # --full installs development headers and client library, not just binaries
-    args << "--full"
+    # (only supported pre-2.7)
+    args << "--full" if build.stable?
     args << "--use-system-boost" if build.with? "boost"
+    args << "--64" if MacOS.prefer_64_bit?
 
-    if build.with? 'openssl'
-      args << '--ssl'
-      args << "--extrapath=#{Formula["openssl"].opt_prefix}"
+    if build.with? "openssl"
+      args << "--ssl" << "--extrapath=#{Formula["openssl"].opt_prefix}"
     end
 
-    scons 'install', *args
+    scons "install", *args
 
     (buildpath+"mongod.conf").write mongodb_conf
     etc.install "mongod.conf"
 
-    (var+'mongodb').mkpath
-    (var+'log/mongodb').mkpath
+    (var+"mongodb").mkpath
+    (var+"log/mongodb").mkpath
   end
 
   def mongodb_conf; <<-EOS.undent
-    # Store data in #{var}/mongodb instead of the default /data/db
-    dbpath = #{var}/mongodb
-
-    # Append logs to #{var}/log/mongodb/mongo.log
-    logpath = #{var}/log/mongodb/mongo.log
-    logappend = true
-
-    # Only accept local connections
-    bind_ip = 127.0.0.1
+    systemLog:
+      destination: file
+      path: #{var}/log/mongodb/mongo.log
+      logAppend: true
+    storage:
+      dbPath: #{var}/mongodb
+    net:
+      bindIp: 127.0.0.1
     EOS
   end
 
@@ -110,6 +112,37 @@ class Mongodb < Formula
   end
 
   test do
-    system "#{bin}/mongod", '--sysinfo'
+    system "#{bin}/mongod", "--sysinfo"
   end
 end
+
+__END__
+--- mongodb-2.6.4/SConstruct.orig	2014-09-23 15:09:49.000000000 +0200
++++ mongodb-2.6.4/SConstruct	2014-09-23 15:10:13.000000000 +0200
+@@ -307,7 +307,7 @@
+            0, False)
+
+ if darwin:
+-    osx_version_choices = ['10.6', '10.7', '10.8', '10.9']
++    osx_version_choices = ['10.6', '10.7', '10.8', '10.9', '10.10']
+     add_option("osx-version-min", "minimum OS X version to support", 1, True,
+                type = 'choice', default = osx_version_choices[0], choices = osx_version_choices)
+
+--- mongodb-2.6.4/src/third_party/s2/util/endian/endian.h.orig	2014-09-28 01:08:51.000000000 +0200
++++ mongodb-2.6.4/src/third_party/s2/util/endian/endian.h	2014-09-28 01:09:06.000000000 +0200
+@@ -177,15 +177,4 @@
+   }
+ };
+
+-
+-// This one is safe to take as it's an extension
+-#define htonll(x) ghtonll(x)
+-
+-// ntoh* and hton* are the same thing for any size and bytesex,
+-// since the function is an involution, i.e., its own inverse.
+-#define gntohl(x) ghtonl(x)
+-#define gntohs(x) ghtons(x)
+-#define gntohll(x) ghtonll(x)
+-#define ntohll(x) htonll(x)
+-
+ #endif  // UTIL_ENDIAN_ENDIAN_H_

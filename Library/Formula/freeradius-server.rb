@@ -1,27 +1,68 @@
-require 'formula'
+require "formula"
 
 class FreeradiusServer < Formula
-  homepage 'http://freeradius.org/'
-  url 'ftp://ftp.freeradius.org/pub/freeradius/freeradius-server-2.2.2.tar.gz'
-  sha1 '6aaa14169c20f257dcd5dcc61da0d0f985e9b5cc'
+  homepage "http://freeradius.org/"
+  url "ftp://ftp.freeradius.org/pub/freeradius/freeradius-server-2.2.5.tar.gz"
+  sha1 "4d18ed8ff3fde4a29112ecc07f175b774ed5f702"
+  revision 1
 
-  # Requires newer autotools on all platforms
-  depends_on 'autoconf' => :build
-  depends_on 'automake' => :build
-  depends_on 'libtool' => :build
+  devel do
+    url "ftp://ftp.freeradius.org/pub/freeradius/freeradius-server-3.0.4.tar.bz2"
+    sha1 "baa58979672f6fc57ab4f16e947b85b9a6eee969"
+    depends_on "talloc" => :build
+  end
+
+  bottle do
+    revision 1
+    sha1 "8d4ee7a2f614da03a1cabd3ec5214a70d0170319" => :mavericks
+    sha1 "2d4a5a91820eead568781f256e5c4ad4b9b44afb" => :mountain_lion
+    sha1 "b553c57efec7453296980809c417d090835522d8" => :lion
+  end
+
+  depends_on "openssl"
 
   # libtool is glibtool on OS X
-  patch :DATA
+  stable do
+    depends_on "autoconf" => :build
+    depends_on "automake" => :build
+    depends_on "libtool" => :build
+    patch :DATA
+  end
 
   def install
+    openssl = Formula["openssl"]
+
     ENV.deparallelize
 
-    system "autoreconf", "-fvi"
-    system "./configure", "--prefix=#{prefix}",
-                          "--with-system-libtool",
-                          "--with-system-libltdl"
+    args = [
+      "--prefix=#{prefix}",
+      "--sbindir=#{bin}",
+      "--localstatedir=#{var}",
+      "--with-openssl-includes=#{openssl.opt_include}",
+      "--with-openssl-libraries=#{openssl.opt_lib}",
+    ]
+
+    if build.stable?
+      args << "--with-system-libtool"
+      args << "--with-system-libltdl"
+      inreplace "autogen.sh", "libtool", "glibtool"
+      system "./autogen.sh"
+    end
+
+    if build.devel?
+      talloc = Formula["talloc"]
+      args << "--with-talloc-lib-dir=#{talloc.opt_lib}"
+      args << "--with-talloc-include-dir=#{talloc.opt_include}"
+    end
+
+    system "./configure", *args
     system "make"
-    system "make install"
+    system "make", "install"
+  end
+
+  def post_install
+    (var/"run/radiusd").mkpath
+    (var/"log/radius").mkpath
   end
 end
 

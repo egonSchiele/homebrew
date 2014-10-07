@@ -1,15 +1,14 @@
-require 'formula'
+require "formula"
 
 class Mysql < Formula
-  homepage 'http://dev.mysql.com/doc/refman/5.6/en/'
-  url "http://cdn.mysql.com/Downloads/MySQL-5.6/mysql-5.6.17.tar.gz"
-  sha1 "53773d619d7f7bc1743f92fd65885a0581c37ff8"
-  revision 1
+  homepage "http://dev.mysql.com/doc/refman/5.6/en/"
+  url "http://cdn.mysql.com/Downloads/MySQL-5.6/mysql-5.6.21.tar.gz"
+  sha1 "be068ba90953aecdb3f448b4ba1d35796eb799eb"
 
   bottle do
-    sha1 "a41817eea90f2150351f2862cec17c15acd45e07" => :mavericks
-    sha1 "f7a7fefcb7bf69dd3a5a5ec0de9c70e85ed7a4dc" => :mountain_lion
-    sha1 "6fb1710382c9cc1a67a5cde6dcd1951183cc007e" => :lion
+    sha1 "487c5c441bc4d4907e65e49816bf460a63e0626f" => :mavericks
+    sha1 "6fcaefaa998e2398893b970200ae33b8baf04794" => :mountain_lion
+    sha1 "770d21fb57e4f4740e076349958ea8698627788c" => :lion
   end
 
   option :universal
@@ -29,8 +28,6 @@ class Mysql < Formula
     :because => "mysql, mariadb, and percona install the same binaries."
   conflicts_with 'mysql-connector-c',
     :because => 'both install MySQL client libraries'
-
-  env :std if build.universal?
 
   fails_with :llvm do
     build 2326
@@ -86,7 +83,10 @@ class Mysql < Formula
     args << "-DWITH_BLACKHOLE_STORAGE_ENGINE=1" if build.with? 'blackhole-storage-engine'
 
     # Make universal for binding to universal applications
-    args << "-DCMAKE_OSX_ARCHITECTURES='#{Hardware::CPU.universal_archs.as_cmake_arch_flags}'" if build.universal?
+    if build.universal?
+      ENV.universal_binary
+      args << "-DCMAKE_OSX_ARCHITECTURES=#{Hardware::CPU.universal_archs.as_cmake_arch_flags}"
+    end
 
     # Build with local infile loading support
     args << "-DENABLED_LOCAL_INFILE=1" if build.include? 'enable-local-infile'
@@ -157,6 +157,7 @@ class Mysql < Formula
       <array>
         <string>#{opt_bin}/mysqld_safe</string>
         <string>--bind-address=127.0.0.1</string>
+        <string>--datadir=#{var}/mysql</string>
       </array>
       <key>RunAtLoad</key>
       <true/>

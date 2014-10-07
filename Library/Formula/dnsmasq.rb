@@ -1,20 +1,22 @@
-require 'formula'
+require "formula"
 
 class Dnsmasq < Formula
-  homepage 'http://www.thekelleys.org.uk/dnsmasq/doc.html'
-  url 'http://www.thekelleys.org.uk/dnsmasq/dnsmasq-2.69.tar.gz'
-  sha1 'a4c68afd0214abd45d983540c297f386882a3516'
+  homepage "http://www.thekelleys.org.uk/dnsmasq/doc.html"
+  url "http://www.thekelleys.org.uk/dnsmasq/dnsmasq-2.72.tar.gz"
+  sha1 "c2dc54b142ec5676d6e22951bc5b61863b0503fe"
 
   bottle do
-    sha1 "060ec20cbe40d411029c0ce5dc697f0dbf097a3e" => :mavericks
-    sha1 "507156c3b20de7cf37ae639c4ffee79d2a9bee51" => :mountain_lion
-    sha1 "7c64e615a820f2c34badda58005af67ff2a3b90c" => :lion
+    sha1 "b4bb00ef3c8fd8ffa48a08b0de4f95fa5cef09d2" => :mavericks
+    sha1 "6ae8c98b3c600c1a6f1f0263a5d7612887d8e768" => :mountain_lion
+    sha1 "66c145b8ed68c93ae0e7dcbc755b2151f94f5772" => :lion
   end
 
-  option 'with-idn', 'Compile with IDN support'
+  option "with-idn", "Compile with IDN support"
+  option "with-dnssec", "Compile with DNSSEC support"
 
   depends_on "libidn" if build.with? "idn"
-  depends_on 'pkg-config' => :build
+  depends_on "nettle" if build.with? "dnssec"
+  depends_on "pkg-config" => :build
 
   def install
     ENV.deparallelize
@@ -25,6 +27,11 @@ class Dnsmasq < Formula
     # Optional IDN support
     if build.with? "idn"
       inreplace "src/config.h", "/* #define HAVE_IDN */", "#define HAVE_IDN"
+    end
+
+    # Optional DNSSEC support
+    if build.with? "dnssec"
+      inreplace "src/config.h", "/* #define HAVE_DNSSEC */", "#define HAVE_DNSSEC"
     end
 
     # Fix compilation on Lion
@@ -60,11 +67,10 @@ class Dnsmasq < Formula
           <string>#{opt_sbin}/dnsmasq</string>
           <string>--keep-in-foreground</string>
         </array>
+        <key>RunAtLoad</key>
+        <true/>
         <key>KeepAlive</key>
-        <dict>
-          <key>NetworkState</key>
-          <true/>
-        </dict>
+        <true/>
       </dict>
     </plist>
     EOS

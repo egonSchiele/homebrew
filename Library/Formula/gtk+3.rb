@@ -2,16 +2,16 @@ require 'formula'
 
 class Gtkx3 < Formula
   homepage 'http://gtk.org/'
-  url 'http://ftp.gnome.org/pub/gnome/sources/gtk+/3.12/gtk+-3.12.1.tar.xz'
-  sha256 '719aae5fdb560f64cadb7e968c8c85c0823664de890c9f765ff4c0efeb0277cd'
+  url 'http://ftp.gnome.org/pub/gnome/sources/gtk+/3.14/gtk+-3.14.1.tar.xz'
+  sha256 '7e86eb7c8acc18524d7758ca2340b723ddeee1d0cd2cadd56de5a13322770a52'
 
   bottle do
-    sha1 "89dc1b403bd64be6ab61321d3b13c090c6244dd7" => :mavericks
-    sha1 "81a756c19cd6461a3dc1c0a906b1e7a79f349172" => :mountain_lion
-    sha1 "1a0a9f4166ec0392d43f5cf991d6cd87b63dcec1" => :lion
+    sha1 "f86088908060d19c73afe2883dea0d7f2b9db7f7" => :mavericks
+    sha1 "8cb0138bbfee3942db106f413c3ed84c7d431e7e" => :mountain_lion
+    sha1 "f14082ff43736ec1b5dfa96fff9c64f493207625" => :lion
   end
 
-  depends_on :x11 => '2.5' # needs XInput2, introduced in libXi 1.3
+  depends_on :x11 => ['2.5', :recommended] # needs XInput2, introduced in libXi 1.3
   depends_on 'pkg-config' => :build
   depends_on 'glib'
   depends_on 'jpeg'
@@ -23,25 +23,32 @@ class Gtkx3 < Formula
   depends_on 'atk'
   depends_on 'at-spi2-atk'
   depends_on 'gobject-introspection'
+  depends_on 'gsettings-desktop-schemas' => :recommended
 
   def install
-    # gtk-update-icon-cache is used during installation, and
-    # we don't want to add a dependency on gtk+2 just for this.
-    inreplace %w[ gtk/makefile.msc.in
-                  demos/gtk-demo/Makefile.in
-                  demos/widget-factory/Makefile.in ],
-                  /gtk-update-icon-cache --(force|ignore-theme-index)/,
-                  "#{buildpath}/gtk/\\0"
 
-    system "./configure", "--disable-debug",
-                          "--disable-dependency-tracking",
-                          "--prefix=#{prefix}",
-                          "--disable-glibtest",
-                          "--enable-introspection=yes",
-                          "--enable-x11-backend",
-                          "--disable-schemas-compile"
+    args = %W[
+      --disable-debug
+      --disable-dependency-tracking
+      --prefix=#{prefix}
+      --disable-glibtest
+      --enable-introspection=yes
+      --disable-schemas-compile
+    ]
+
+    if build.without? "x11"
+      args << "--enable-quartz-backend" << "--enable-quartz-relocation"
+    else
+      args << "--enable-x11-backend"
+    end
+
+    system "./configure", *args
     system "make install"
     # Prevent a conflict between this and Gtk+2
     mv bin/'gtk-update-icon-cache', bin/'gtk3-update-icon-cache'
+  end
+
+  def post_install
+    system "#{Formula["glib"].opt_bin}/glib-compile-schemas", "#{HOMEBREW_PREFIX}/share/glib-2.0/schemas"
   end
 end

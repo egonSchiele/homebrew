@@ -2,25 +2,22 @@ require "formula"
 
 class Mono < Formula
   homepage "http://www.mono-project.com/"
-  url "http://download.mono-project.com/sources/mono/mono-3.2.8.tar.bz2"
-  sha1 "d58403caec82af414507cefa58ce74bbb792985a"
+  url "http://download.mono-project.com/sources/mono/mono-3.8.0.tar.bz2"
+  sha1 "0e1fcaa0ec228830f9b0a650b6cfd3c098c82afc"
+
+  # xbuild requires the .exe files inside the runtime directories to
+  # be executable
+  skip_clean "lib/mono"
 
   bottle do
-    sha1 "24b6d8979f74a645f6c9e479cd37c175f146f428" => :mavericks
-    sha1 "f64f94d411755ae039244bb47862c5f8196acf10" => :mountain_lion
-    sha1 "c2b73e639254287efc5a88ef9d07bf08d12b4d37" => :lion
+    sha1 "2184aeba1346c3cbbed0dbf077466bbd826c3559" => :mavericks
+    sha1 "982b56d443b6d0f65e0351f74afcf10175271fea" => :mountain_lion
+    sha1 "df60a0666a1aa750e3e64d12d16a80ca1f7997da" => :lion
   end
 
   resource "monolite" do
     url "http://storage.bos.xamarin.com/mono-dist-master/latest/monolite-111-latest.tar.gz"
-    sha1 "7f6715b8e569b6e7ad85c207311f145f688b3cf5"
-  end
-
-  # help mono find its MonoPosixHelper lib when it is not in a system path
-  # see https://bugzilla.xamarin.com/show_bug.cgi?id=18555
-  patch do
-    url "https://bugzilla.xamarin.com/attachment.cgi?id=6399"
-    sha1 "d011dc55f341feea0bdb8aa645688b815910b734"
+    sha1 "af90068351895082f03fdaf2840b7539e23e3f32"
   end
 
   def install
@@ -44,7 +41,8 @@ class Mono < Formula
 
   test do
     test_str = "Hello Homebrew"
-    hello = (testpath/"hello.cs")
+    test_name = "hello.cs"
+    hello = testpath/test_name
     hello.write <<-EOS.undent
       public class Hello1
       {
@@ -59,6 +57,23 @@ class Mono < Formula
     output = `#{bin}/mono hello.exe`
     assert $?.success?
     assert_equal test_str, output.strip
+
+    # Tests that xbuild is able to execute lib/mono/*/mcs.exe
+    xbuild = testpath/"test.csproj"
+    xbuild.write <<-EOS.undent
+      <?xml version="1.0" encoding="utf-8"?>
+      <Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+        <PropertyGroup>
+          <AssemblyName>HomebrewMonoTest</AssemblyName>
+        </PropertyGroup>
+        <ItemGroup>
+          <Compile Include="#{test_name}" />
+        </ItemGroup>
+        <Import Project="$(MSBuildBinPath)\\Microsoft.CSharp.targets" />
+      </Project>
+    EOS
+    system "#{bin}/xbuild", xbuild
+    assert $?.success?
   end
 
   def caveats; <<-EOS.undent

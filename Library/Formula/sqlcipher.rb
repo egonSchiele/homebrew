@@ -1,19 +1,33 @@
-require 'formula'
+require "formula"
 
 class Sqlcipher < Formula
   homepage "http://sqlcipher.net"
-  url 'https://github.com/sqlcipher/sqlcipher/archive/v3.0.1.tar.gz'
-  sha1 '9cec88e5a6e59058e675d37bbd4b0899689f9956'
+  url "https://github.com/sqlcipher/sqlcipher/archive/v3.1.0.tar.gz"
+  sha1 "350a7cbc01690825cb6beca3b9bf6943f71a52de"
 
   head "https://github.com/sqlcipher/sqlcipher.git"
 
-  keg_only "SQLCipher conflicts with the system and Homebrew SQLites."
+  option "with-fts", "Build with full-text search enabled"
+
+  depends_on "openssl"
 
   def install
-    system "./configure", "--prefix=#{prefix}", "--enable-tempstore=yes",
-                          "CFLAGS=-DSQLITE_HAS_CODEC", "LDFLAGS=-lcrypto",
-                          "--disable-tcl"
+
+    args = %W[
+      --prefix=#{prefix}
+      --enable-tempstore=yes
+      --with-crypto-lib=#{Formula["openssl"].opt_prefix}
+      --disable-tcl
+    ]
+
+    if build.with?("fts")
+      args << "CFLAGS=-DSQLITE_HAS_CODEC -DSQLITE_ENABLE_FTS3"
+    else
+      args << "CFLAGS=-DSQLITE_HAS_CODEC"
+    end
+
+    system "./configure", *args
     system "make"
-    system "make install"
+    system "make", "install"
   end
 end

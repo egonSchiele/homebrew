@@ -1,51 +1,48 @@
-require 'formula'
+require "formula"
 
 class Qt5HeadDownloadStrategy < GitDownloadStrategy
   include FileUtils
 
   def stage
     @clone.cd { reset }
-    safe_system 'git', 'clone', @clone, '.'
-    ln_s @clone, 'qt'
-    safe_system './init-repository', '--mirror', "#{Dir.pwd}/"
-    rm 'qt'
+    safe_system "git", "clone", @clone, "."
+    ln_s @clone, "qt"
+    safe_system "./init-repository", "--mirror", "#{Dir.pwd}/"
+    rm "qt"
   end
 end
 
 class Qt5 < Formula
-  homepage 'http://qt-project.org/'
-  url 'http://download.qt-project.org/official_releases/qt/5.2/5.2.1/single/qt-everywhere-opensource-src-5.2.1.tar.gz'
-  sha1 '31a5cf175bb94dbde3b52780d3be802cbeb19d65'
+  homepage "http://qt-project.org/"
+  url "http://qtmirror.ics.com/pub/qtproject/official_releases/qt/5.3/5.3.2/single/qt-everywhere-opensource-src-5.3.2.tar.gz"
+  mirror "http://download.qt-project.org/official_releases/qt/5.3/5.3.2/single/qt-everywhere-opensource-src-5.3.2.tar.gz"
+  sha1 "502dd2db1e9ce349bb8ac48b4edf7f768df1cafe"
 
   bottle do
-    revision 2
-    sha1 "6a514fbf56491a64316ef05acdf07ca6526ba458" => :mavericks
-    sha1 "2518707b0ad69462a620fcd5c2e482053a239914" => :mountain_lion
-    sha1 "b2362eb20666b961d1d2acec629e4a581aa2b87a" => :lion
+    sha1 "b2a204e963405aade40d9a88383beeec7301c7e2" => :mavericks
+    sha1 "2744a6ee18b87ab1ab791ec136c3f95481713d2c" => :mountain_lion
+    sha1 "6d327353447bdc56176f605e51d910fde032ad8d" => :lion
   end
 
-  head 'git://gitorious.org/qt/qt5.git', :branch => 'stable',
+  # Patch to fix compile errors on Yosemite. Can be removed with 5.4.
+  # https://bugreports.qt-project.org/browse/QTBUG-41136
+  patch :DATA
+
+  head "git://gitorious.org/qt/qt5.git", :branch => "stable",
     :using => Qt5HeadDownloadStrategy, :shallow => false
 
   keg_only "Qt 5 conflicts Qt 4 (which is currently much more widely used)."
 
   option :universal
-  option 'with-docs', 'Build documentation'
-  option 'developer', 'Build and link with developer options'
+  option "with-docs", "Build documentation"
+  option "developer", "Build and link with developer options"
 
   depends_on "pkg-config" => :build
   depends_on "d-bus" => :optional
   depends_on "mysql" => :optional
-
-  odie 'qt5: --with-qtdbus has been renamed to --with-d-bus' if build.with? "qtdbus"
-  odie 'qt5: --with-demos-examples is no longer supported' if build.with? "demos-examples"
-  odie 'qt5: --with-debug-and-release is no longer supported' if build.with? "debug-and-release"
+  depends_on :xcode => :build
 
   def install
-    # fixed hardcoded link to plugin dir: https://bugreports.qt-project.org/browse/QTBUG-29188
-    inreplace "qttools/src/macdeployqt/macdeployqt/main.cpp", "deploymentInfo.pluginPath = \"/Developer/Applications/Qt/plugins\";",
-              "deploymentInfo.pluginPath = \"#{prefix}/plugins\";"
-
     ENV.universal_binary if build.universal?
     args = ["-prefix", prefix,
             "-system-zlib",
@@ -55,19 +52,12 @@ class Qt5 < Formula
             "-nomake", "tests",
             "-release"]
 
-    unless MacOS::CLT.installed?
-      # ... too stupid to find CFNumber.h, so we give a hint:
-      ENV.append 'CXXFLAGS', "-I#{MacOS.sdk_path}/System/Library/Frameworks/CoreFoundation.framework/Headers"
-    end
-
     # https://bugreports.qt-project.org/browse/QTBUG-34382
     args << "-no-xcb"
 
-    args << "-L#{MacOS::X11.lib}" << "-I#{MacOS::X11.include}" if MacOS::X11.installed?
+    args << "-plugin-sql-mysql" if build.with? "mysql"
 
-    args << "-plugin-sql-mysql" if build.with? 'mysql'
-
-    if build.with? 'd-bus'
+    if build.with? "d-bus"
       dbus_opt = Formula["d-bus"].opt_prefix
       args << "-I#{dbus_opt}/lib/dbus-1.0/include"
       args << "-I#{dbus_opt}/include/dbus-1.0"
@@ -77,20 +67,20 @@ class Qt5 < Formula
     end
 
     if MacOS.prefer_64_bit? or build.universal?
-      args << '-arch' << 'x86_64'
+      args << "-arch" << "x86_64"
     end
 
     if !MacOS.prefer_64_bit? or build.universal?
-      args << '-arch' << 'x86'
+      args << "-arch" << "x86"
     end
 
-    args << '-developer-build' if build.include? 'developer'
+    args << "-developer-build" if build.include? "developer"
 
     system "./configure", *args
     system "make"
     ENV.j1
     system "make install"
-    if build.with? 'docs'
+    if build.with? "docs"
       system "make", "docs"
       system "make", "install_docs"
     end
@@ -123,3 +113,18 @@ class Qt5 < Formula
     EOS
   end
 end
+
+__END__
+diff --git a/qtmultimedia/src/plugins/avfoundation/mediaplayer/avfmediaplayersession.mm b/qtmultimedia/src/plugins/avfoundation/mediaplayer/avfmediaplayersession.mm
+index a73974c..d3f3eae 100644
+--- a/qtmultimedia/src/plugins/avfoundation/mediaplayer/avfmediaplayersession.mm
++++ b/qtmultimedia/src/plugins/avfoundation/mediaplayer/avfmediaplayersession.mm
+@@ -322,7 +322,7 @@ static void *AVFMediaPlayerSessionObserverCurrentItemObservationContext = &AVFMe
+     //AVPlayerItem "status" property value observer.
+     if (context == AVFMediaPlayerSessionObserverStatusObservationContext)
+     {
+-        AVPlayerStatus status = [[change objectForKey:NSKeyValueChangeNewKey] integerValue];
++        AVPlayerStatus status = (AVPlayerStatus)[[change objectForKey:NSKeyValueChangeNewKey] integerValue];
+         switch (status)
+         {
+             //Indicates that the status of the player is not yet known because

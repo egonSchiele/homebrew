@@ -5,6 +5,13 @@ class Guile < Formula
   url 'http://ftpmirror.gnu.org/guile/guile-2.0.11.tar.gz'
   mirror 'http://ftp.gnu.org/gnu/guile/guile-2.0.11.tar.gz'
   sha1 '3cdd1c4956414bffadea13e5a1ca08949016a802'
+  revision 1
+
+  bottle do
+    sha1 "144466e2a084ea75d295b98b995690969363b33f" => :mavericks
+    sha1 "ab535db3b510c80356df01a9a86e6a7f9ec1b15c" => :mountain_lion
+    sha1 "79baa2dfc742e413b5492aa7a876f8ff042497ae" => :lion
+  end
 
   head do
     url 'http://git.sv.gnu.org/r/guile.git'
@@ -15,13 +22,11 @@ class Guile < Formula
   end
 
   depends_on 'pkg-config' => :build
-  depends_on :libtool
+  depends_on 'libtool' => :run
   depends_on 'libffi'
   depends_on 'libunistring'
   depends_on 'bdw-gc'
   depends_on 'gmp'
-
-  # GNU Readline is required; libedit won't work.
   depends_on 'readline'
 
   fails_with :llvm do
@@ -47,6 +52,8 @@ class Guile < Formula
     Pathname.glob("#{lib}/*.dylib") do |dylib|
       lib.install_symlink dylib.basename => "#{dylib.basename(".dylib")}.so"
     end
+
+    (share/"gdb/auto-load").install Dir["#{lib}/*-gdb.scm"]
   end
 
   test do

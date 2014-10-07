@@ -2,8 +2,8 @@ require 'formula'
 
 class Unrar < Formula
   homepage 'http://www.rarlab.com'
-  url 'http://www.rarlab.com/rar/unrarsrc-5.1.4.tar.gz'
-  sha1 'a7477ced67816de0a18dd4722e0729752200b097'
+  url 'http://www.rarlab.com/rar/unrarsrc-5.1.7.tar.gz'
+  sha1 'e91800e4c3dfa0745c566f0d724692731126ae88'
 
   def install
     system "make"
@@ -16,7 +16,7 @@ class Unrar < Formula
     data =  'UmFyIRoHAM+QcwAADQAAAAAAAACaCHQggDIACQAAAAkAAAADtPej1LZwZE' +
             'QUMBIApIEAAGRpcmVjdG9yeVxmaWxlLnR4dEhvbWVicmV3CsQ9ewBABwA='
 
-    rarpath.write data.unpack('m')
+    rarpath.write data.unpack('m').first
     assert_equal contentpath, `#{bin}/unrar lb #{rarpath}`.strip
     assert_equal 0, $?.exitstatus
 

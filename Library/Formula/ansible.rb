@@ -2,12 +2,18 @@ require 'formula'
 
 class Ansible < Formula
   homepage 'http://www.ansible.com/home'
-  url 'http://releases.ansible.com/ansible/ansible-1.5.5.tar.gz'
-  sha1 '9a065eac0d15413284c8c7f9f5047d7b1249f16c'
+  url 'http://releases.ansible.com/ansible/ansible-1.7.2.tar.gz'
+  sha1 '21532ce402e08c91cc64c5e655758574af9fc8f3'
 
   head 'https://github.com/ansible/ansible.git', :branch => 'devel'
 
-  depends_on :python
+  bottle do
+    sha1 "97822f76a9c9650473fff0cd725bfa546bb84442" => :mavericks
+    sha1 "dcc7cf4b6272707d95505a2c2c2f1b9b051f1b76" => :mountain_lion
+    sha1 "5f9f3b109a31ccf5d7d64a16338d635d974b1648" => :lion
+  end
+
+  depends_on :python if MacOS.version <= :snow_leopard
   depends_on 'libyaml'
 
   option 'with-accelerate', "Enable accelerated mode"
@@ -15,6 +21,11 @@ class Ansible < Formula
   resource 'pycrypto' do
     url 'https://pypi.python.org/packages/source/p/pycrypto/pycrypto-2.6.tar.gz'
     sha1 'c17e41a80b3fbf2ee4e8f2d8bb9e28c5d08bbb84'
+  end
+
+  resource 'boto' do
+    url 'https://pypi.python.org/packages/source/b/boto/boto-2.32.1.tar.gz'
+    sha1 '4fdecde66245b7fc0295e22d2c2d3c9b08c2b1fa'
   end
 
   resource 'pyyaml' do
@@ -37,33 +48,23 @@ class Ansible < Formula
     sha1 'a9b24d887f2be772921b3ee30a0b9d435cffadda'
   end
 
-  if build.with? 'accelerate'
-    resource 'python-keyczar' do
-      url 'https://pypi.python.org/packages/source/p/python-keyczar/python-keyczar-0.71b.tar.gz'
-      sha1 '20c7c5d54c0ce79262092b4cc691aa309fb277fa'
-    end
+  resource 'python-keyczar' do
+    url 'https://pypi.python.org/packages/source/p/python-keyczar/python-keyczar-0.71b.tar.gz'
+    sha1 '20c7c5d54c0ce79262092b4cc691aa309fb277fa'
   end
 
   def install
+    ENV["PYTHONPATH"] = lib+"python2.7/site-packages"
     ENV.prepend_create_path 'PYTHONPATH', libexec+'lib/python2.7/site-packages'
     # HEAD additionally requires this to be present in PYTHONPATH, or else
     # ansible's own setup.py will fail.
     ENV.prepend_create_path 'PYTHONPATH', prefix+'lib/python2.7/site-packages'
     install_args = [ "setup.py", "install", "--prefix=#{libexec}" ]
 
-    # pycrypto's C bindings use flags unrecognized by clang,
-    # but since it doesn't use a makefile arg refurbishment
-    # is normally not enabled.
-    # See https://github.com/Homebrew/homebrew/issues/27639
-    ENV.append 'HOMEBREW_CCCFG', 'O'
-
-    resource('pycrypto').stage { system "python", *install_args }
-    resource('pyyaml').stage { system "python", *install_args }
-    resource('paramiko').stage { system "python", *install_args }
-    resource('markupsafe').stage { system "python", *install_args }
-    resource('jinja2').stage { system "python", *install_args }
-    if build.with? 'accelerate'
-      resource('python-keyczar').stage { system "python", *install_args }
+    res = %w[pycrypto boto pyyaml paramiko markupsafe jinja2]
+    res << "python-keyczar" if build.with? "accelerate"
+    res.each do |r|
+      resource(r).stage { system "python", *install_args }
     end
 
     inreplace 'lib/ansible/constants.py' do |s|
@@ -73,12 +74,10 @@ class Ansible < Formula
 
     system "python", "setup.py", "install", "--prefix=#{prefix}"
 
-    # HEAD version installs some conflicting extra cruft
-    if build.head?
-      rm Dir["#{bin}/easy_install*"]
-      rm "#{lib}/python2.7/site-packages/site.py"
-      rm Dir["#{lib}/python2.7/site-packages/*.pth"]
-    end
+    # These are now rolled into 1.6 and cause linking conflicts
+    rm Dir["#{bin}/easy_install*"]
+    rm "#{lib}/python2.7/site-packages/site.py"
+    rm Dir["#{lib}/python2.7/site-packages/*.pth"]
 
     man1.install Dir['docs/man/man1/*.1']
 

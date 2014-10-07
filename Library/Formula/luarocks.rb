@@ -1,47 +1,40 @@
 require 'formula'
 
 class Luarocks < Formula
-  homepage 'http://luarocks.org'
-  head 'https://github.com/keplerproject/luarocks.git'
-  url 'http://luarocks.org/releases/luarocks-2.1.2.tar.gz'
-  sha1 '406253d15c9d50bb0d09efa9807fb2ddd31cba9d'
+  homepage "http://luarocks.org"
 
-  option 'with-luajit', 'Use LuaJIT instead of the stock Lua'
-  option 'with-lua52', 'Use Lua 5.2 instead of the stock Lua'
+  stable do
+    url "http://luarocks.org/releases/luarocks-2.2.0.tar.gz"
+    sha1 "e2de00f070d66880f3766173019c53a23229193d"
 
-  if build.with? "luajit"
-    depends_on 'luajit'
-    # luajit depends internally on lua being installed
-    # and is only 5.1 compatible, see #25954
-    depends_on 'lua'
-  elsif build.with? "lua52"
-    depends_on 'lua52'
-  else
-    depends_on 'lua'
+    # Remove writability checks in the install script.
+    # Homebrew checks that its install targets are writable, or fails with
+    # appropriate messaging if not. The check that luarocks does has been
+    # seen to have false positives, so remove it.
+    # TODO: better document the false positive cases, or remove this patch.
+    patch :DATA
   end
+
+  bottle do
+    sha1 "eabd3d0f2bb7979ac831ce948e8d288569d2a0c8" => :mavericks
+    sha1 "fb6956c0ee42f3bfdde280693cf28d32b3587e55" => :mountain_lion
+    sha1 "140ee3fd55954d1fd30984620d8f109056ef56f9" => :lion
+  end
+
+  head "https://github.com/keplerproject/luarocks.git"
+
+  depends_on 'lua'
 
   fails_with :llvm do
     cause "Lua itself compiles with llvm, but may fail when other software tries to link."
   end
 
-  # Remove writability checks in the install script.
-  # Homebrew checks that its install targets are writable, or fails with
-  # appropriate messaging if not. The check that luarocks does has been
-  # seen to have false positives, so remove it.
-  # TODO: better document the false positive cases, or remove this patch.
-  patch :DATA
-
   def install
     # Install to the Cellar, but direct modules to HOMEBREW_PREFIX
     args = ["--prefix=#{prefix}",
             "--rocks-tree=#{HOMEBREW_PREFIX}",
+            "--lua-version=5.2",
             "--sysconfdir=#{etc}/luarocks"]
-
-    if build.with? "luajit"
-      args << "--with-lua-include=#{HOMEBREW_PREFIX}/include/luajit-2.0"
-      args << "--lua-suffix=jit"
-      args << "--with-lua=luajit"
-    end
 
     system "./configure", *args
     system "make"
@@ -65,13 +58,13 @@ end
 
 __END__
 diff --git a/src/luarocks/fs/lua.lua b/src/luarocks/fs/lua.lua
-index 67c3ce0..2d149c7 100644
+index b261905..f396030 100644
 --- a/src/luarocks/fs/lua.lua
 +++ b/src/luarocks/fs/lua.lua
-@@ -669,29 +669,5 @@ end
+@@ -791,31 +791,7 @@ end
  -- @return boolean or (boolean, string): true on success, false on failure,
  -- plus an error message.
- function check_command_permissions(flags)
+ function fs_lua.check_command_permissions(flags)
 -   local root_dir = path.root_dir(cfg.rocks_dir)
 -   local ok = true
 -   local err = ""

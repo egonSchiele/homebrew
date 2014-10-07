@@ -7,13 +7,13 @@ end
 
 class Xctool < Formula
   homepage 'https://github.com/facebook/xctool'
-  url 'https://github.com/facebook/xctool/archive/v0.1.15.tar.gz'
-  sha1 'bfa6e02ae0fb90294fe653c55e1a7151877319be'
+  url 'https://github.com/facebook/xctool/archive/v0.2.1.tar.gz'
+  sha1 '49182de7136447f86cfe0c86035a9858befcbbdf'
   head 'https://github.com/facebook/xctool.git'
 
   bottle do
-    sha1 "d10ed0064f04d4f723d09c09868a44418b6ac272" => :mavericks
-    sha1 "0947c080af4b20bcb950b18707bedca3e9a580ae" => :mountain_lion
+    sha1 "fcf07aca0621e0b5e7a97e820e49c6a6e05b6901" => :mavericks
+    sha1 "62a3b9db0ae8a44580d61e6b2da4fb110d580ea7" => :mountain_lion
   end
 
   depends_on :xcode

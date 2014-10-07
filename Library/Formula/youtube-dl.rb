@@ -5,20 +5,25 @@ require "formula"
 # https://pypi.python.org/pypi/youtube_dl
 class YoutubeDl < Formula
   homepage "http://rg3.github.io/youtube-dl/"
-  url "https://yt-dl.org/downloads/2014.04.30/youtube-dl-2014.04.30.tar.gz"
-  sha1 "39ef1f38adeefaea3af17957c66a2aca05b4c747"
+  url "https://yt-dl.org/downloads/2014.10.05.2/youtube-dl-2014.10.05.2.tar.gz"
+  sha1 "defa32d81d4d88cb5ab041010ce9399d11f0763f"
 
   bottle do
     cellar :any
-    sha1 "283d43da7c2cc0d574dba9d9898862f0f8ebd2d1" => :mavericks
-    sha1 "f0a0a24fd014766898cda0bfde2621ba86b56980" => :mountain_lion
-    sha1 "123e323857f033584408dec4f39babaaff273f5e" => :lion
+    sha1 "d56b7ea196ca6255ba14f198284ac7dd7bc0ca43" => :mavericks
+    sha1 "5cb6f80980337ae133b7d5c25fae03d1de26d1b9" => :mountain_lion
+    sha1 "eb3bcb7677d9cef89b692624543e344819ebf92e" => :lion
+  end
+
+  head do
+    url "https://github.com/rg3/youtube-dl.git"
+    depends_on "pandoc" => :build
   end
 
   depends_on "rtmpdump" => :optional
 
   def install
-    system "make", "youtube-dl", "PREFIX=#{prefix}"
+    system "make", "PREFIX=#{prefix}"
     bin.install "youtube-dl"
     man1.install "youtube-dl.1"
     bash_completion.install "youtube-dl.bash-completion"

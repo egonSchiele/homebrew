@@ -1,27 +1,27 @@
-require 'formula'
+require "formula"
 
 # Note that x.even are stable releases, x.odd are devel releases
 class Node < Formula
-  homepage 'http://nodejs.org/'
-  url 'http://nodejs.org/dist/v0.10.26/node-v0.10.26.tar.gz'
-  sha1 '2340ec2dce1794f1ca1c685b56840dd515a271b2'
+  homepage "http://nodejs.org/"
+  url "http://nodejs.org/dist/v0.10.32/node-v0.10.32.tar.gz"
+  sha256 "c2120d0e3d2d191654cb11dbc0a33a7216d53732173317681da9502be0030f10"
 
   bottle do
-    sha1 "0db92b18d10cb7505d7c885058e337aeb5e9741c" => :mavericks
-    sha1 "b48b83e92cdb8b064620c7fef409b37a2ae90e67" => :mountain_lion
-    sha1 "ecd7b384658ad1a54a74174d07dcffc3aa5ddc92" => :lion
+    sha1 "f9f083a1cf13cf3703c764d639702627968e2234" => :mavericks
+    sha1 "83a01d1079ed1bc02a7c9fc7cefa589027778b15" => :mountain_lion
+    sha1 "a2dbe4a3358e98813fbc6c83cfa79120177e6fc8" => :lion
   end
 
   devel do
-    url 'http://nodejs.org/dist/v0.11.12/node-v0.11.12.tar.gz'
-    sha1 'd991057af05dd70feb2126469ce279a2fe869e86'
+    url "http://nodejs.org/dist/v0.11.14/node-v0.11.14.tar.gz"
+    sha256 "ce08b0a2769bcc135ca25639c9d411a038e93e0f5f5a83000ecde9b763c4dd83"
   end
 
-  head 'https://github.com/joyent/node.git'
+  head "https://github.com/joyent/node.git"
 
-  option 'enable-debug', 'Build with debugger hooks'
-  option 'without-npm', 'npm will not be installed'
-  option 'without-completion', 'npm bash completion will not be installed'
+  option "enable-debug", "Build with debugger hooks"
+  option "without-npm", "npm will not be installed"
+  option "without-completion", "npm bash completion will not be installed"
 
   depends_on :python => :build
 
@@ -30,13 +30,13 @@ class Node < Formula
   end
 
   resource "npm" do
-    url "http://registry.npmjs.org/npm/-/npm-1.4.6.tgz"
-    sha1 "0e151bce38e72cf2206a6299fa5164123f04256e"
+    url "https://registry.npmjs.org/npm/-/npm-1.4.24.tgz"
+    sha1 "78125bb55dc592b9cbf4aff44e33d5d81c9471af"
   end
 
   def install
     args = %W{--prefix=#{prefix} --without-npm}
-    args << "--debug" if build.include? 'enable-debug'
+    args << "--debug" if build.include? "enable-debug"
 
     system "./configure", *args
     system "make", "install"
@@ -55,13 +55,14 @@ class Node < Formula
     npmrc = npm_root/"npmrc"
     npmrc.atomic_write("prefix = #{HOMEBREW_PREFIX}\n")
 
+    ENV["NPM_CONFIG_USERCONFIG"] = npmrc
     npm_root.cd { system "make", "install" }
-    system "#{HOMEBREW_PREFIX}/bin/npm", "update", "npm", "-g"
+    system "#{HOMEBREW_PREFIX}/bin/npm", "install", "--global", "npm@latest",
+                                         "--prefix", HOMEBREW_PREFIX
 
     Pathname.glob(npm_root/"man/*") do |man|
-      dir = send(man.basename)
       man.children.each do |file|
-        dir.install_symlink(file)
+        ln_sf file, "#{HOMEBREW_PREFIX}/share/man/#{man.basename}"
       end
     end
 
@@ -88,6 +89,6 @@ class Node < Formula
     assert_equal "hello", output
     assert_equal 0, $?.exitstatus
 
-    system "#{HOMEBREW_PREFIX}/bin/npm", "install", "npm" if build.with? "npm"
+    system "#{HOMEBREW_PREFIX}/bin/npm", "install", "npm@latest" if build.with? "npm"
   end
 end
